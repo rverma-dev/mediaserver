@@ -1,0 +1,28 @@
+:80 {
+	redir / /jellyfin/ 302
+
+	handle /jellyfin/* {
+		reverse_proxy jellyfin:8096
+	}
+
+	redir /qbit /qbit/ 302
+	handle_path /qbit/* {
+		reverse_proxy qbittorrent:8080
+	}
+
+	handle /sonarr/* {
+		reverse_proxy sonarr:8989
+	}
+
+	handle /radarr/* {
+		reverse_proxy radarr:7878
+	}
+
+	handle /prowlarr/* {
+		reverse_proxy warp:9696
+	}
+
+	handle /bazarr/* {
+		reverse_proxy bazarr:6767
+	}
+}

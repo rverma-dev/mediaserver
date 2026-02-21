@@ -1,0 +1,135 @@
+services:
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    ports:
+      - "80:80"
+    volumes:
+      - ${MEDIASERVER_ROOT}/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${MEDIASERVER_ROOT}/config/caddy/data:/data
+      - ${MEDIASERVER_ROOT}/config/caddy/config:/config
+    networks:
+      - mediaserver
+    restart: unless-stopped
+
+  warp:
+    image: caomingjun/warp
+    container_name: warp
+    environment:
+      - WARP_SLEEP=2
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv4.conf.all.src_valid_mark=1
+    volumes:
+      - ${MEDIASERVER_ROOT}/config/warp:/var/lib/cloudflare-warp
+    networks:
+      - mediaserver
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-x", "socks5h://127.0.0.1:1080", "-s", "https://cloudflare.com/cdn-cgi/trace"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - JELLYFIN_PublishedServerUrl=http://192.168.68.60/jellyfin
+    volumes:
+      - ${MEDIASERVER_ROOT}/config/jellyfin:/config
+      - ${MEDIASERVER_ROOT}/data:/data
+    devices:
+      - /dev/video19:/dev/video19
+      - /dev/media1:/dev/media1
+    group_add:
+      - "video"
+    networks:
+      - mediaserver
+    restart: unless-stopped
+
+  qbittorrent:
+    image: linuxserver/qbittorrent
+    container_name: qbittorrent
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+    volumes:
+      - ${MEDIASERVER_ROOT}/config/qbittorrent:/config
+      - ${MEDIASERVER_ROOT}/data:/data
+    ports:
+      # Torrent peer port — must stay exposed
+      - "6881:6881"
+      - "6881:6881/udp"
+    networks:
+      - mediaserver
+    restart: unless-stopped
+
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${MEDIASERVER_ROOT}/config/sonarr:/config
+      - ${MEDIASERVER_ROOT}/data:/data
+    networks:
+      - mediaserver
+    restart: unless-stopped
+
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${MEDIASERVER_ROOT}/config/radarr:/config
+      - ${MEDIASERVER_ROOT}/data:/data
+    networks:
+      - mediaserver
+    restart: unless-stopped
+
+  prowlarr:
+    image: linuxserver/prowlarr
+    container_name: prowlarr
+    network_mode: "service:warp"
+    depends_on:
+      warp:
+        condition: service_healthy
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${MEDIASERVER_ROOT}/config/prowlarr:/config
+    restart: unless-stopped
+
+  bazarr:
+    image: linuxserver/bazarr
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${MEDIASERVER_ROOT}/config/bazarr:/config
+      - ${MEDIASERVER_ROOT}/data:/data
+    networks:
+      - mediaserver
+    restart: unless-stopped
+
+networks:
+  mediaserver:
+    driver: bridge

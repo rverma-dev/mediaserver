@@ -1,0 +1,5 @@
+# Service configs (contain API keys, passwords, tokens)
+config/
+
+# Media and torrent data
+data/
