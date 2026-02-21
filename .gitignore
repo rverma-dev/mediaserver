@@ -1,5 +1,61 @@
-# Service configs (contain API keys, passwords, tokens)
-config/
-
 # Media and torrent data
 data/
+
+# Logs
+config/*/logs/
+config/**/logs/
+config/*/log/
+config/**/log/
+*.log
+*.log.*
+
+# Jellyfin heavy dirs (cache, transcodes, metadata regenerated)
+config/jellyfin/cache/
+config/jellyfin/metadata/
+config/jellyfin/transcodes/
+config/jellyfin/data/
+config/jellyfin/root/
+
+# Backups (services create their own)
+config/*/Backups/
+config/bazarr/config/backup/
+
+# WARP state (auto-generated on startup)
+config/warp/
+
+# Caddy state (auto-generated)
+config/caddy/
+
+# Gluetun (removed, leftover)
+config/gluetun/
+
+# Prowlarr indexer definitions (bundled with image, regenerated)
+config/prowlarr/Definitions/
+
+# SQLite journal/wal files (transient)
+*-shm
+*-wal
+*-journal
+
+# Bazarr transient
+config/bazarr/config/analytics_visitor_id.txt
+config/bazarr/config/announcements.json
+config/bazarr/config/releases.txt
+
+# Jellyfin marker files
+.jellyfin-*
+
+# Lock/pid files (transient)
+*.pid
+*.lock
+lockfile
+storage.lock
+
+# GeoDB (bundled, large binary)
+config/qbittorrent/qBittorrent/GeoDB/
+
+# ASP data protection keys (regenerated)
+config/*/asp/
+
+# Log databases (regenerated)
+logs.db

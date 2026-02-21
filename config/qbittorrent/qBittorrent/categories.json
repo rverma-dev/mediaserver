@@ -1,0 +1,11 @@
+{
+    "movies": {
+        "save_path": ""
+    },
+    "prowlarr": {
+        "save_path": ""
+    },
+    "tv": {
+        "save_path": ""
+    }
+}
