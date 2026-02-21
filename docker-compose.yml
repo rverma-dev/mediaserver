@@ -9,7 +9,8 @@ services:
       - ${MEDIASERVER_ROOT}/config/caddy/data:/data
       - ${MEDIASERVER_ROOT}/config/caddy/config:/config
     networks:
-      - mediaserver
+      mediaserver:
+        ipv4_address: 172.20.0.2
     restart: unless-stopped
 
   warp:
@@ -24,8 +25,16 @@ services:
       - net.ipv4.conf.all.src_valid_mark=1
     volumes:
       - ${MEDIASERVER_ROOT}/config/warp:/var/lib/cloudflare-warp
+    extra_hosts:
+      - "caddy:172.20.0.2"
+      - "jellyfin:172.20.0.4"
+      - "qbittorrent:172.20.0.5"
+      - "sonarr:172.20.0.6"
+      - "radarr:172.20.0.7"
+      - "bazarr:172.20.0.8"
     networks:
-      - mediaserver
+      mediaserver:
+        ipv4_address: 172.20.0.3
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-x", "socks5h://127.0.0.1:1080", "-s", "https://cloudflare.com/cdn-cgi/trace"]
@@ -51,7 +60,8 @@ services:
     group_add:
       - "video"
     networks:
-      - mediaserver
+      mediaserver:
+        ipv4_address: 172.20.0.4
     restart: unless-stopped
 
   qbittorrent:
@@ -70,7 +80,8 @@ services:
       - "6881:6881"
       - "6881:6881/udp"
     networks:
-      - mediaserver
+      mediaserver:
+        ipv4_address: 172.20.0.5
     restart: unless-stopped
 
   sonarr:
@@ -84,7 +95,8 @@ services:
       - ${MEDIASERVER_ROOT}/config/sonarr:/config
       - ${MEDIASERVER_ROOT}/data:/data
     networks:
-      - mediaserver
+      mediaserver:
+        ipv4_address: 172.20.0.6
     restart: unless-stopped
 
   radarr:
@@ -98,7 +110,8 @@ services:
       - ${MEDIASERVER_ROOT}/config/radarr:/config
       - ${MEDIASERVER_ROOT}/data:/data
     networks:
-      - mediaserver
+      mediaserver:
+        ipv4_address: 172.20.0.7
     restart: unless-stopped
 
   prowlarr:
@@ -116,6 +129,19 @@ services:
       - ${MEDIASERVER_ROOT}/config/prowlarr:/config
     restart: unless-stopped
 
+  seerr:
+    image: seerr/seerr
+    container_name: seerr
+    network_mode: "service:warp"
+    depends_on:
+      warp:
+        condition: service_healthy
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${MEDIASERVER_ROOT}/config/seerr:/app/config
+    restart: unless-stopped
+
   bazarr:
     image: linuxserver/bazarr
     container_name: bazarr
@@ -127,9 +153,13 @@ services:
       - ${MEDIASERVER_ROOT}/config/bazarr:/config
       - ${MEDIASERVER_ROOT}/data:/data
     networks:
-      - mediaserver
+      mediaserver:
+        ipv4_address: 172.20.0.8
     restart: unless-stopped
 
 networks:
   mediaserver:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

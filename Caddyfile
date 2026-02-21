@@ -1,6 +1,4 @@
 :80 {
-	redir / /jellyfin/ 302
-
 	handle /jellyfin/* {
 		reverse_proxy jellyfin:8096
 	}
@@ -24,5 +22,10 @@
 
 	handle /bazarr/* {
 		reverse_proxy bazarr:6767
+	}
+
+	# Seerr — Netflix-style discovery UI (catch-all / landing page)
+	handle {
+		reverse_proxy warp:5055
 	}
 }

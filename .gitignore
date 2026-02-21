@@ -59,3 +59,17 @@ config/*/asp/
 
 # Log databases (regenerated)
 logs.db
+
+# qBittorrent torrent resume data (transient)
+config/qbittorrent/qBittorrent/BT_backup/
+
+# Media cover art (regenerated from metadata)
+config/*/MediaCover/
+
+# Seerr transient (cache, anime-list, old settings)
+config/seerr/cache/
+config/seerr/anime-list.xml
+config/seerr/settings.old.json
+
+# SSH key (never commit)
+GitHub-private-rv
