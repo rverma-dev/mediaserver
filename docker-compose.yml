@@ -6,7 +6,6 @@ services:
       - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
       - DUCKDNS_SUBDOMAIN=${DUCKDNS_SUBDOMAIN}
     ports:
-      - "80:80"
       - "443:443"
       - "127.0.0.1:2019:2019"
     volumes:
@@ -42,6 +41,8 @@ services:
       mediaserver:
         ipv4_address: 172.20.0.3
     restart: unless-stopped
+    ports:
+      - "5055:5055"
     healthcheck:
       test: ["CMD", "curl", "-x", "socks5h://127.0.0.1:1080", "-s", "https://cloudflare.com/cdn-cgi/trace"]
       interval: 15s

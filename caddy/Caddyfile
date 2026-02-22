@@ -5,8 +5,12 @@
 	}
 }
 
-# Shared media service routes
-(media-routes) {
+# HTTPS — Let's Encrypt cert via DuckDNS DNS-01
+{$DUCKDNS_SUBDOMAIN}.duckdns.org {
+	tls {
+		dns duckdns {$DUCKDNS_TOKEN}
+	}
+
 	handle /jellyfin/* {
 		reverse_proxy jellyfin:8096
 	}
@@ -31,28 +35,9 @@
 	handle /bazarr/* {
 		reverse_proxy bazarr:6767
 	}
-}
 
-# HTTPS — real Let's Encrypt cert via DuckDNS DNS-01 challenge
-{$DUCKDNS_SUBDOMAIN}.duckdns.org {
-	tls {
-		dns duckdns {$DUCKDNS_TOKEN}
-	}
-
-	import media-routes
-
-	# OpenClaw — catch-all on HTTPS (needs root for WebSocket)
+	# OpenClaw — catch-all (WebSocket + API)
 	handle {
 		reverse_proxy openclaw:18789
-	}
-}
-
-# HTTP fallback — LAN access via IP
-:80 {
-	import media-routes
-
-	# Seerr — Netflix-style discovery UI (catch-all / landing page)
-	handle {
-		reverse_proxy warp:5055
 	}
 }
