@@ -52,6 +52,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./openclaw
+          platforms: linux/amd64,linux/arm64
           file: ./openclaw/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
