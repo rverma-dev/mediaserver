@@ -1,3 +1,10 @@
+{
+	admin 0.0.0.0:2019
+	servers {
+		metrics
+	}
+}
+
 # Shared media service routes
 (media-routes) {
 	handle /jellyfin/* {

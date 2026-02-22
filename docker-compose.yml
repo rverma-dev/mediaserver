@@ -8,6 +8,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "127.0.0.1:2019:2019"
     volumes:
       - ${MEDIASERVER_ROOT}/Caddyfile:/etc/caddy/Caddyfile:ro
       - ${MEDIASERVER_ROOT}/config/caddy/data:/data
@@ -22,6 +23,7 @@ services:
     container_name: warp
     environment:
       - WARP_SLEEP=2
+      - WARP_LOG_LEVEL=warn
     cap_add:
       - NET_ADMIN
     sysctls:
@@ -147,6 +149,7 @@ services:
         condition: service_healthy
     environment:
       - TZ=${TZ}
+      - LOG_LEVEL=warn
     volumes:
       - ${MEDIASERVER_ROOT}/config/seerr:/app/config
     restart: unless-stopped
