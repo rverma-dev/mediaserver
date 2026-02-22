@@ -4,48 +4,95 @@ on:
   push:
     branches: [main]
     paths:
-      - 'caddy/**'
       - '.github/workflows/build-caddy.yml'
   workflow_dispatch:
+    inputs:
+      caddy_version:
+        description: 'Caddy version (e.g. v2.11.0-beta.2)'
+        required: false
+        default: 'v2.11.0-beta.2'
 
 env:
-  REGISTRY: ghcr.io
+  CADDY_VERSION: v2.11.0-beta.2
 
 jobs:
   build:
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: arm64
+            suffix: linux-arm64
+          - goos: linux
+            goarch: amd64
+            suffix: linux-amd64
+
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
+      - uses: actions/setup-go@v5
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          go-version: '1.24'
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/caddy-duckdns
-          tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+      - name: Install xcaddy
+        run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - name: Build Caddy with DuckDNS plugin
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          xcaddy build ${{ inputs.caddy_version || env.CADDY_VERSION }} \
+            --with github.com/caddy-dns/duckdns \
+            --output caddy-${{ matrix.suffix }}
+
+      - name: Compute SRI hash (for Nix)
+        id: hash
+        run: |
+          sha256=$(sha256sum caddy-${{ matrix.suffix }} | awk '{print $1}')
+          sri="sha256-$(echo -n "$sha256" | xxd -r -p | base64 -w0)"
+          echo "sha256=${sha256}" >> "$GITHUB_OUTPUT"
+          echo "sri=${sri}" >> "$GITHUB_OUTPUT"
+          echo "### caddy-${{ matrix.suffix }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "sha256: ${sha256}" >> "$GITHUB_STEP_SUMMARY"
+          echo "sri:    ${sri}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          context: ./caddy
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          name: caddy-${{ matrix.suffix }}
+          path: caddy-${{ matrix.suffix }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: caddy-${{ inputs.caddy_version || 'v2.11.0-beta.2' }}
+          name: Caddy ${{ inputs.caddy_version || 'v2.11.0-beta.2' }} + DuckDNS
+          body: |
+            Custom Caddy build with [caddy-dns/duckdns](https://github.com/caddy-dns/duckdns) plugin.
+            Base version: ${{ inputs.caddy_version || 'v2.11.0-beta.2' }}
+
+            Built for: linux/amd64, linux/arm64
+
+            **Nix SRI hashes** — update `nix/packages/caddy-duckdns.nix` after each build:
+            See the workflow summary for sha256/SRI values.
+          files: |
+            caddy-linux-arm64/caddy-linux-arm64
+            caddy-linux-amd64/caddy-linux-amd64
+          make_latest: false

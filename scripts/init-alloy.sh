@@ -8,6 +8,13 @@ load_env || true
 [[ -z "${GCLOUD_RW_API_KEY:-}" ]] && { warn "GCLOUD_RW_API_KEY not set — skipping Alloy."; exit 0; }
 
 info "Installing Grafana Alloy via Grafana Cloud script..."
+# Ensure Alloy user can access Docker socket (required for cAdvisor)
+for u in alloy alloyd; do
+    if id "$u" &>/dev/null; then
+        sudo usermod -aG docker "$u" 2>/dev/null && info "Added $u to docker group for cAdvisor."
+        break
+    fi
+done
 export GCLOUD_HOSTED_METRICS_ID="${GCLOUD_HOSTED_METRICS_ID:-2992798}"
 export GCLOUD_HOSTED_METRICS_URL="${GCLOUD_HOSTED_METRICS_URL:-https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom/push}"
 export GCLOUD_HOSTED_LOGS_ID="${GCLOUD_HOSTED_LOGS_ID:-1492074}"

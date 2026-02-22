@@ -1,0 +1,104 @@
+name: Build Seerr
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-seerr.yml'
+  workflow_dispatch:
+    inputs:
+      seerr_version:
+        description: 'Seerr version (e.g. v3.0.1)'
+        required: false
+        default: 'v3.0.1'
+
+env:
+  SEERR_VERSION: v3.0.1
+  NODE_VERSION: '22'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+            suffix: linux-amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            suffix: linux-arm64
+
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Clone Seerr
+        uses: actions/checkout@v4
+        with:
+          repository: seerr-team/seerr
+          ref: ${{ inputs.seerr_version || env.SEERR_VERSION }}
+          path: seerr-src
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Build
+        working-directory: seerr-src
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm prune --prod --ignore-scripts
+          rm -rf .next/cache
+          find node_modules -xtype l -delete
+
+      - name: Package
+        run: |
+          mkdir seerr
+          cp -r seerr-src/.next seerr-src/node_modules seerr-src/dist \
+                seerr-src/public seerr-src/package.json seerr/
+          [ -f seerr-src/seerr-api.yml ] && cp seerr-src/seerr-api.yml seerr/ || true
+          [ -f seerr-src/jellyseerr-api.yml ] && cp seerr-src/jellyseerr-api.yml seerr/ || true
+          tar czf seerr-${{ matrix.suffix }}.tar.gz seerr/
+
+      - name: Compute SRI hash
+        run: |
+          sha256=$(sha256sum seerr-${{ matrix.suffix }}.tar.gz | awk '{print $1}')
+          sri="sha256-$(echo -n "$sha256" | xxd -r -p | base64 -w0)"
+          echo "### seerr-${{ matrix.suffix }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "sri: ${sri}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seerr-${{ matrix.suffix }}
+          path: seerr-${{ matrix.suffix }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: seerr-${{ inputs.seerr_version || 'v3.0.1' }}
+          name: Seerr ${{ inputs.seerr_version || 'v3.0.1' }}
+          body: |
+            Pre-built Seerr (formerly Jellyseerr) for Nix binary installation.
+            Base version: ${{ inputs.seerr_version || 'v3.0.1' }}
+          files: |
+            seerr-linux-arm64/seerr-linux-arm64.tar.gz
+            seerr-linux-amd64/seerr-linux-amd64.tar.gz
+          make_latest: false

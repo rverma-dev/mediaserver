@@ -24,13 +24,13 @@ load_env
 [[ -z "${DUCKDNS_SUBDOMAIN:-}" ]] && warn "DUCKDNS_SUBDOMAIN not set — HTTPS will fail until configured."
 
 # --- Run phases ---
-"${SCRIPT_DIR}/scripts/init-system.sh"
-"${SCRIPT_DIR}/scripts/init-alloy.sh"
 "${SCRIPT_DIR}/scripts/init-dirs.sh"
-"${SCRIPT_DIR}/scripts/init-config.sh"
-"${SCRIPT_DIR}/scripts/init-openclaw.sh"
+"${SCRIPT_DIR}/scripts/init-alloy.sh"
 
-# Final ownership (after openclaw may have created files)
+# Nix-managed services (all services)
+"${SCRIPT_DIR}/scripts/init-nix.sh"
+
+# Final ownership (after nix may have created files)
 sudo chown -R "${PUID}:${PGID}" "${MEDIASERVER_ROOT}"
 
 "${SCRIPT_DIR}/scripts/init-network.sh"

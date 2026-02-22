@@ -18,15 +18,14 @@
       "model": {
         "primary": "openai-codex/gpt-5.3-codex"
       },
-      "workspace": "/home/node/.openclaw/workspace"
+      "workspace": "/opt/mediaserver/openclaw/workspace"
     },
     "list": [
       { "id": "main" },
       {
         "id": "quick",
         "name": "quick",
-        "workspace": "/home/node/.openclaw/workspace-quick",
-        "agentDir": "/home/node/.openclaw/agents/quick/agent",
+        "workspace": "/opt/mediaserver/openclaw/workspace-quick",
         "model": "google/gemini-2.5-flash",
         "subagents": {
           "allowAgents": ["main"]
@@ -38,6 +37,10 @@
     {
       "agentId": "quick",
       "match": { "channel": "whatsapp" }
+    },
+    {
+      "agentId": "quick",
+      "match": { "channel": "telegram" }
     }
   ],
   "commands": {
@@ -46,10 +49,17 @@
   },
   "channels": {
     "whatsapp": {
-      "dmPolicy": "pairing",
+      "dmPolicy": "allowlist",
+      "allowFrom": ["919988844215"],
       "groupPolicy": "disabled",
       "debounceMs": 0,
       "mediaMaxMb": 50
+    },
+    "telegram": {
+      "allowFrom": [],
+      "groups": {
+        "*": { "requireMention": true }
+      }
     }
   },
   "gateway": {
@@ -60,7 +70,7 @@
       "mode": "token",
       "token": "REPLACE_WITH_OPENCLAW_GATEWAY_TOKEN"
     },
-    "trustedProxies": ["172.20.0.0/24", "172.18.0.0/24"],
+    "trustedProxies": ["172.20.0.0/24"],
     "tailscale": { "mode": "off", "resetOnExit": false },
     "nodes": {
       "denyCommands": [

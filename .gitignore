@@ -113,3 +113,11 @@ config/caddy/config/
 config/caddy/cert.pem
 config/caddy/key.pem
 # Track: config/caddy/Caddyfile
+
+# Nix
+result
+result-*
+.direnv/
+
+# Sentry crash telemetry
+config/*/Sentry/

@@ -2,5 +2,8 @@
   "log-driver": "journald",
   "log-opts": {
     "tag": "{{.Name}}"
+  },
+  "features": {
+    "containerd-snapshotter": false
   }
 }

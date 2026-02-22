@@ -1,0 +1,11 @@
+[
+  ./caddy.nix
+  ./openclaw.nix
+  ./sonarr.nix
+  ./radarr.nix
+  ./prowlarr.nix
+  ./bazarr.nix
+  ./jellyfin.nix
+  ./seerr.nix
+  ./qbittorrent.nix
+]
