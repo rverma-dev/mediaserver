@@ -51,6 +51,8 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - JELLYFIN_PublishedServerUrl=http://192.168.68.60/jellyfin
+      - all_proxy=socks5://172.20.0.3:1080
+      - no_proxy=172.20.0.0/24,192.168.68.0/24,localhost,127.0.0.1
     volumes:
       - ${MEDIASERVER_ROOT}/config/jellyfin:/config
       - ${MEDIASERVER_ROOT}/data:/data
@@ -59,6 +61,9 @@ services:
       - /dev/media1:/dev/media1
     group_add:
       - "video"
+    depends_on:
+      warp:
+        condition: service_healthy
     networks:
       mediaserver:
         ipv4_address: 172.20.0.4

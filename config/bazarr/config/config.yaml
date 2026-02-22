@@ -66,7 +66,9 @@ general:
   embedded_subs_show_desired: true
   embedded_subtitles_parser: ffprobe
   enabled_integrations: []
-  enabled_providers: []
+  enabled_providers:
+  - opensubtitlescom
+  - podnapisi
   external_webhook_password: ''
   external_webhook_url: ''
   external_webhook_username: ''
@@ -80,8 +82,8 @@ general:
   language_equals: []
   minimum_score: 90
   minimum_score_movie: 70
-  movie_default_enabled: false
-  movie_default_profile: ''
+  movie_default_enabled: true
+  movie_default_profile: 1
   movie_tag_enabled: true
   multithreading: true
   page_size: 25
@@ -93,8 +95,8 @@ general:
   postprocessing_threshold: 90
   postprocessing_threshold_movie: 70
   remove_profile_tags: []
-  serie_default_enabled: false
-  serie_default_profile: ''
+  serie_default_enabled: true
+  serie_default_profile: 1
   serie_tag_enabled: true
   single_language: true
   skip_hashing: false
@@ -166,9 +168,9 @@ napisy24:
 opensubtitlescom:
   include_ai_translated: false
   include_machine_translated: false
-  password: ''
+  password: abcdef
   use_hash: true
-  username: ''
+  username: rverma1702
 plex:
   apikey: ''
   auth_method: apikey
@@ -269,7 +271,8 @@ sonarr:
 subdl:
   api_key: ''
 subf2m:
-  user_agent: ''
+  user_agent: Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko)
+    Chrome/120.0.0.0 Safari/537.36
   verify_ssl: true
 subsource:
   apikey: ''
