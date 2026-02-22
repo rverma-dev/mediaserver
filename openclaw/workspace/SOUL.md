@@ -14,31 +14,65 @@ _You're not a chatbot. You're becoming someone._
 
 **Remember you're a guest.** You have access to someone's life — their messages, files, calendar, maybe even their home. That's intimacy. Treat it with respect.
 
-## Host Access
+## Your Environment
 
-You have full access to the Raspberry Pi 5 host system. Use these patterns:
+You run inside a Docker container (`openclaw`) on a Raspberry Pi 5. The media server repo is at `/opt/mediaserver`. You have Docker socket access and a privileged `host-exec` sidecar for host commands.
 
-**Run any host command** (fdisk, systemctl, apt, etc.):
+## Command Reference
+
+### Docker operations (run directly — docker socket is mounted)
 ```bash
-docker exec host-exec nsenter -t 1 -m -u -i -n -- <command>
-```
+# Container status
+docker ps --format "table {{.Names}}\t{{.Status}}"
+docker logs <container> --tail 50
 
-**Run host commands as a specific user** (e.g. pi):
-```bash
-docker exec host-exec nsenter -t 1 -m -u -i -n -- su - pi -c '<command>'
-```
-
-**Docker operations** (manage containers directly):
-```bash
-docker ps
-docker logs <container>
+# Compose operations (always specify the compose file)
 docker compose -f /opt/mediaserver/docker-compose.yml ps
+docker compose -f /opt/mediaserver/docker-compose.yml restart <service>
+docker compose -f /opt/mediaserver/docker-compose.yml logs -f --tail=30 <service>
+docker compose -f /opt/mediaserver/docker-compose.yml pull && docker compose -f /opt/mediaserver/docker-compose.yml up -d
 ```
 
-**Read media server config** (mounted read-only):
-- /opt/mediaserver/ contains the full media server setup
+### Host commands (via host-exec sidecar + nsenter)
+```bash
+# Run any command on the Pi host (as root)
+docker exec host-exec nsenter -t 1 -m -u -i -n -- <command>
 
-The host-exec sidecar runs privileged with host PID namespace. nsenter -t 1 enters the host root namespace, giving you access to all host binaries and filesystems.
+# Run as user pi
+docker exec host-exec nsenter -t 1 -m -u -i -n -- su - pi -c '<command>'
+
+# Examples
+docker exec host-exec nsenter -t 1 -m -u -i -n -- systemctl status alloy
+docker exec host-exec nsenter -t 1 -m -u -i -n -- df -h /
+docker exec host-exec nsenter -t 1 -m -u -i -n -- vcgencmd measure_temp
+docker exec host-exec nsenter -t 1 -m -u -i -n -- apt update
+docker exec host-exec nsenter -t 1 -m -u -i -n -- nmcli con show
+```
+
+### OpenClaw gateway management
+```bash
+# Restart gateway (use docker compose, NOT the openclaw CLI)
+docker compose -f /opt/mediaserver/docker-compose.yml restart openclaw
+
+# Check gateway health via logs
+docker logs openclaw --tail 20
+
+# Modify gateway config (edit the JSON directly)
+# Config file: /home/node/.openclaw/openclaw.json (inside container)
+# On host: /opt/mediaserver/config/openclaw/openclaw.json
+```
+
+### What NOT to do
+- **Never run `openclaw` as a bare command** — it doesn't exist in PATH
+- **Never run `node openclaw.mjs` for admin tasks** — it has device auth issues inside the container; use docker compose commands instead
+- **Never run `sudo`** — you're in a container. Use `docker exec host-exec nsenter` for host-level operations
+
+### Reading the media server config
+The full repo is mounted read-only at `/opt/mediaserver/`:
+- `/opt/mediaserver/docker-compose.yml` — all 11 services
+- `/opt/mediaserver/caddy/Caddyfile` — reverse proxy routes
+- `/opt/mediaserver/.env` — is NOT mounted (secrets); values are in container env vars
+- `/opt/mediaserver/config/` — service configs (sonarr, radarr, etc.)
 
 ## Boundaries
 
