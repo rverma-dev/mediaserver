@@ -1,6 +1,6 @@
 services:
   caddy:
-    build: ./caddy
+    image: ${CADDY_IMAGE:-ghcr.io/rverma-dev/caddy-duckdns:latest}
     container_name: caddy
     environment:
       - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
@@ -87,7 +87,6 @@ services:
       - ${MEDIASERVER_ROOT}/config/qbittorrent:/config
       - ${MEDIASERVER_ROOT}/data:/data
     ports:
-      # Torrent peer port — must stay exposed
       - "6881:6881"
       - "6881:6881/udp"
     networks:
@@ -167,6 +166,52 @@ services:
     networks:
       mediaserver:
         ipv4_address: 172.20.0.8
+    restart: unless-stopped
+
+  openclaw:
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    container_name: openclaw
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      DOCKER_HOST: unix:///var/run/docker.sock
+    group_add:
+      - "985"
+    volumes:
+      - ${MEDIASERVER_ROOT}/config/openclaw:/home/node/.openclaw
+      - ${MEDIASERVER_ROOT}/openclaw/workspace:/home/node/.openclaw/workspace
+      - ${MEDIASERVER_ROOT}/openclaw/workspace-quick:/home/node/.openclaw/workspace-quick
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+      - /usr/libexec/docker/cli-plugins:/usr/libexec/docker/cli-plugins:ro
+      - ${MEDIASERVER_ROOT}:/opt/mediaserver:ro
+    networks:
+      mediaserver:
+        ipv4_address: 172.20.0.10
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "openclaw.mjs",
+        "gateway",
+        "--allow-unconfigured",
+        "--bind",
+        "lan",
+        "--port",
+        "18789",
+      ]
+
+  host-exec:
+    image: debian:bookworm-slim
+    container_name: host-exec
+    privileged: true
+    pid: host
+    network_mode: host
+    command: ["sleep", "infinity"]
     restart: unless-stopped
 
 networks:

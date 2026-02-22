@@ -1,0 +1,81 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.2.17",
+    "lastTouchedAt": null
+  },
+  "env": {},
+  "wizard": {},
+  "auth": {
+    "profiles": {
+      "openai-codex:default": {
+        "provider": "openai-codex",
+        "mode": "oauth"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "openai-codex/gpt-5.3-codex"
+      },
+      "workspace": "/home/node/.openclaw/workspace"
+    },
+    "list": [
+      { "id": "main" },
+      {
+        "id": "quick",
+        "name": "quick",
+        "workspace": "/home/node/.openclaw/workspace-quick",
+        "agentDir": "/home/node/.openclaw/agents/quick/agent",
+        "model": "google/gemini-2.5-flash",
+        "subagents": {
+          "allowAgents": ["main"]
+        }
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "agentId": "quick",
+      "match": { "channel": "whatsapp" }
+    }
+  ],
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
+  "channels": {
+    "whatsapp": {
+      "dmPolicy": "pairing",
+      "groupPolicy": "disabled",
+      "debounceMs": 0,
+      "mediaMaxMb": 50
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "lan",
+    "auth": {
+      "mode": "token",
+      "token": "REPLACE_WITH_OPENCLAW_GATEWAY_TOKEN"
+    },
+    "trustedProxies": ["172.20.0.0/24", "172.18.0.0/24"],
+    "tailscale": { "mode": "off", "resetOnExit": false },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "calendar.add",
+        "contacts.add",
+        "reminders.add"
+      ]
+    }
+  },
+  "plugins": {
+    "entries": {
+      "whatsapp": { "enabled": true }
+    }
+  }
+}

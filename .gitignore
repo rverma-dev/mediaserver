@@ -73,3 +73,18 @@ config/seerr/settings.old.json
 
 # SSH key (never commit)
 GitHub-private-rv
+
+# Secrets
+.env
+
+# OpenClaw runtime state (sessions, credentials, device tokens)
+config/openclaw/
+
+# OpenClaw workspace runtime
+openclaw/workspace/.openclaw/
+
+# Service databases (transient, regenerated)
+*.db
+*.db-shm
+*.db-wal
+config/qbittorrent/qBittorrent/qBittorrent-data.conf
