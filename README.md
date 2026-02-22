@@ -26,11 +26,13 @@ sudo chown -R 1000:1000 /opt/mediaserver
 # Configure secrets
 cd /opt/mediaserver
 cp .env.example .env
-# Edit .env: DUCKDNS_TOKEN, DUCKDNS_SUBDOMAIN, OPENCLAW_GATEWAY_TOKEN, GOOGLE_API_KEY, GEMINI_API_KEY
+# Edit .env: DUCKDNS_TOKEN, DUCKDNS_SUBDOMAIN, SONARR_API_KEY, RADARR_API_KEY, PROWLARR_API_KEY, BAZARR_API_KEY, OPENCLAW_*, etc.
 
-# Bootstrap (installs Docker, Alloy, UFW, deploys stack)
+# Bootstrap (installs Docker, Alloy, UFW, injects API keys into configs, deploys stack)
 ./init.sh
 ```
+
+API keys in `.env` are injected into *arr configs by `init-config.sh`. For fresh install: leave keys empty, let services generate on first run, then copy from each UI (Settings → General) into `.env` and run `./scripts/init-config.sh`.
 
 ## GHCR Images (no local build on Pi)
 
@@ -68,7 +70,8 @@ cp .env.example .env
 │   ├── init-system.sh    # apt, Docker, daemon
 │   ├── init-alloy.sh     # Grafana Alloy
 │   ├── init-dirs.sh      # data/config dirs, ownership
-│   ├── init-openclaw.sh  # OpenClaw migration
+│   ├── init-config.sh    # Inject API keys from .env into *arr configs
+├── init-openclaw.sh  # OpenClaw migration
 │   ├── init-network.sh   # static IP
 │   ├── init-security.sh  # UFW, fail2ban
 │   └── init-deploy.sh    # compose pull/up

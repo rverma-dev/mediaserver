@@ -27,6 +27,7 @@ load_env
 "${SCRIPT_DIR}/scripts/init-system.sh"
 "${SCRIPT_DIR}/scripts/init-alloy.sh"
 "${SCRIPT_DIR}/scripts/init-dirs.sh"
+"${SCRIPT_DIR}/scripts/init-config.sh"
 "${SCRIPT_DIR}/scripts/init-openclaw.sh"
 
 # Final ownership (after openclaw may have created files)

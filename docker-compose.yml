@@ -10,7 +10,7 @@ services:
       - "443:443"
       - "127.0.0.1:2019:2019"
     volumes:
-      - ${MEDIASERVER_ROOT}/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${MEDIASERVER_ROOT}/config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ${MEDIASERVER_ROOT}/config/caddy/data:/data
       - ${MEDIASERVER_ROOT}/config/caddy/config:/config
     networks:

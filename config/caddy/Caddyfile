@@ -1,0 +1,58 @@
+{
+	admin 0.0.0.0:2019
+	servers {
+		metrics
+	}
+}
+
+# Shared media service routes
+(media-routes) {
+	handle /jellyfin/* {
+		reverse_proxy jellyfin:8096
+	}
+
+	redir /qbit /qbit/ 302
+	handle_path /qbit/* {
+		reverse_proxy qbittorrent:8080
+	}
+
+	handle /sonarr/* {
+		reverse_proxy sonarr:8989
+	}
+
+	handle /radarr/* {
+		reverse_proxy radarr:7878
+	}
+
+	handle /prowlarr/* {
+		reverse_proxy warp:9696
+	}
+
+	handle /bazarr/* {
+		reverse_proxy bazarr:6767
+	}
+}
+
+# HTTPS — real Let's Encrypt cert via DuckDNS DNS-01 challenge
+{$DUCKDNS_SUBDOMAIN}.duckdns.org {
+	tls {
+		dns duckdns {$DUCKDNS_TOKEN}
+	}
+
+	import media-routes
+
+	# OpenClaw — catch-all on HTTPS (needs root for WebSocket)
+	handle {
+		reverse_proxy openclaw:18789
+	}
+}
+
+# HTTP fallback — LAN access via IP
+:80 {
+	import media-routes
+
+	# Seerr — Netflix-style discovery UI (catch-all / landing page)
+	handle {
+		reverse_proxy warp:5055
+	}
+}

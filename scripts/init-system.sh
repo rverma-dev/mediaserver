@@ -9,7 +9,7 @@ load_env || true
 
 info "Updating system packages..."
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl git jq
+sudo apt install -y curl git jq gettext-base
 
 ROOT_DEV=$(df -h / | awk 'NR==2 {print $1}')
 info "Root: ${ROOT_DEV}"
