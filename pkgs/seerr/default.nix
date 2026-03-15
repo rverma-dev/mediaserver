@@ -1,6 +1,6 @@
 # Fetch pre-built Seerr from mediaserver releases.
-# Built by .github/workflows/build-seerr.yml. Run that workflow, then
-# ./scripts/update-seerr-hashes.sh to populate hashes after each version bump.
+# Built by .github/workflows/build-seerr.yml; trigger via push to this file.
+# After build: ./scripts/update-seerr-hashes.sh to populate hashes.
 {pkgs, lib}:
 let
   version = "3.0.1";
