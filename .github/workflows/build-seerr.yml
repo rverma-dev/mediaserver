@@ -1,5 +1,5 @@
 name: Build Seerr
-
+# dummy push to trigger workflow
 on:
   push:
     branches: [main]
@@ -132,6 +132,7 @@ jobs:
         if: steps.release-check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
           tag_name: seerr-v${{ needs.build.outputs.version }}
           name: Seerr v${{ needs.build.outputs.version }}
           body: |
