@@ -19,17 +19,7 @@ jobs:
   build:
     outputs:
       version: ${{ steps.version.outputs.version }}
-    strategy:
-      matrix:
-        include:
-          - runner: ubuntu-latest
-            arch: amd64
-            suffix: linux-amd64
-          - runner: ubuntu-24.04-arm
-            arch: arm64
-            suffix: linux-arm64
-
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
 
@@ -57,10 +47,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - uses: pnpm/action-setup@v4
         with:
           version: 10
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: seerr-src/.next/cache
+          key: seerr-next-arm64-${{ hashFiles('seerr-src/pnpm-lock.yaml') }}
+          restore-keys: seerr-next-arm64-
 
       - name: Build
         working-directory: seerr-src
@@ -78,13 +76,13 @@ jobs:
                 seerr-src/public seerr-src/package.json seerr/
           [ -f seerr-src/seerr-api.yml ] && cp seerr-src/seerr-api.yml seerr/ || true
           [ -f seerr-src/jellyseerr-api.yml ] && cp seerr-src/jellyseerr-api.yml seerr/ || true
-          tar czf seerr-${{ matrix.suffix }}.tar.gz seerr/
+          tar czf seerr-linux-arm64.tar.gz seerr/
 
       - name: Compute SRI hash
         run: |
-          sha256=$(sha256sum seerr-${{ matrix.suffix }}.tar.gz | awk '{print $1}')
+          sha256=$(sha256sum seerr-linux-arm64.tar.gz | awk '{print $1}')
           sri="sha256-$(echo -n "$sha256" | xxd -r -p | base64 -w0)"
-          echo "### seerr-${{ matrix.suffix }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### seerr-linux-arm64" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "sri: ${sri}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -92,8 +90,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: seerr-${{ matrix.suffix }}
-          path: seerr-${{ matrix.suffix }}.tar.gz
+          name: seerr-linux-arm64
+          path: seerr-linux-arm64.tar.gz
 
   release:
     needs: build
@@ -103,39 +101,45 @@ jobs:
 
     steps:
       - uses: actions/download-artifact@v4
+        with:
+          name: seerr-linux-arm64
 
-      - name: Compute hashes for release notes
+      - name: Check if release exists
+        id: release-check
+        run: |
+          if gh release view "seerr-v${{ needs.build.outputs.version }}" &>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compute hash for release notes
         id: hashes
         run: |
           ARM64_SHA256=$(sha256sum -b seerr-linux-arm64/seerr-linux-arm64.tar.gz | awk '{print $1}')
-          AMD64_SHA256=$(sha256sum -b seerr-linux-amd64/seerr-linux-amd64.tar.gz | awk '{print $1}')
           ARM64_SRI="sha256-$(echo -n "$ARM64_SHA256" | xxd -r -p | base64 -w0)"
-          AMD64_SRI="sha256-$(echo -n "$AMD64_SHA256" | xxd -r -p | base64 -w0)"
           echo "arm64_hash=${ARM64_SRI}" >> "$GITHUB_OUTPUT"
-          echo "amd64_hash=${AMD64_SRI}" >> "$GITHUB_OUTPUT"
           {
-            echo "Nix hashes — update pkgs/seerr/default.nix:"
+            echo "Nix hash — update pkgs/seerr/default.nix:"
             echo ""
             echo "linux_arm64: $ARM64_SRI"
-            echo "linux_amd64: $AMD64_SRI"
             echo ""
             echo "Or run: ./scripts/update-seerr-hashes.sh"
           } >> hashes.txt
 
       - name: Create release
+        if: steps.release-check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: seerr-v${{ needs.build.outputs.version }}
           name: Seerr v${{ needs.build.outputs.version }}
           body: |
-            Pre-built Seerr (formerly Jellyseerr) for Nix binary installation.
+            Pre-built Seerr (formerly Jellyseerr) for Nix — arm64 (Raspberry Pi) only.
             Base version: v${{ needs.build.outputs.version }}
 
-            **Nix hashes** — update `pkgs/seerr/default.nix` or run `./scripts/update-seerr-hashes.sh`:
+            **Nix hash** — update `pkgs/seerr/default.nix` or run `./scripts/update-seerr-hashes.sh`:
             - linux_arm64: `${{ steps.hashes.outputs.arm64_hash }}`
-            - linux_amd64: `${{ steps.hashes.outputs.amd64_hash }}`
           files: |
             seerr-linux-arm64/seerr-linux-arm64.tar.gz
-            seerr-linux-amd64/seerr-linux-amd64.tar.gz
             hashes.txt
           make_latest: false
