@@ -1,0 +1,16 @@
+[
+  ./shell
+  ./nix-maintenance
+  ./caddy
+  ./sonarr
+  ./radarr
+  ./prowlarr
+  ./bazarr
+  ./jellyfin
+  ./seerr
+  ./qbittorrent
+  ./warp
+  ./immich
+  ./monitoring
+  ./camera-mock
+]

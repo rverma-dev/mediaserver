@@ -1,0 +1,41 @@
+name: Weekly Flake Update
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Monday 6 AM UTC
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/determinate-nix-action@v3
+
+      - name: Update flake inputs
+        run: nix flake update
+
+      - name: Check upstream versions
+        run: ./scripts/check-updates.sh
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          title: 'chore: weekly flake & dependency update'
+          body: |
+            Automated weekly update.
+
+            - `nix flake update` (nixpkgs, home-manager)
+            - Upstream version check for Caddy, Seerr
+
+            > Review the version check output in the workflow run for details.
+            > If a package version bumped, update the source hash and rebuild.
+          commit-message: 'chore: update flake inputs'
+          branch: auto/weekly-update
+          delete-branch: true
+          labels: dependencies
