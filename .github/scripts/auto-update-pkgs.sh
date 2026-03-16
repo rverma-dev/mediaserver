@@ -163,7 +163,7 @@ if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   fi
   {
     echo 'summary<<EOF'
-    if (( ${#CHANGED[@]} )); then printf '- %s\n' "${CHANGED[@]}"; fi
+    for c in "${CHANGED[@]}"; do echo "- $c"; done
     if [[ -f "${REPO_ROOT}/.seerr-new-version" ]]; then
       echo "- Seerr: → $(cat "${REPO_ROOT}/.seerr-new-version") (build triggered)"
     fi
