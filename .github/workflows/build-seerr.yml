@@ -117,7 +117,8 @@ jobs:
       - name: Compute hash
         id: hashes
         run: |
-          ARM64_SRI="sha256-$(openssl dgst -sha256 -binary seerr-linux-arm64/seerr-linux-arm64.tar.gz | openssl base64 -A)"
+          ls -la seerr-linux-arm64.tar.gz
+          ARM64_SRI="sha256-$(openssl dgst -sha256 -binary seerr-linux-arm64.tar.gz | openssl base64 -A)"
           echo "arm64_hash=${ARM64_SRI}" >> "$GITHUB_OUTPUT"
 
       - name: Create release
@@ -128,7 +129,7 @@ jobs:
             exit 0
           fi
           gh release create "$TAG" \
-            seerr-linux-arm64/seerr-linux-arm64.tar.gz \
+            seerr-linux-arm64.tar.gz \
             --title "Seerr v${{ needs.build.outputs.version_build }}" \
             --notes "Pre-built Seerr for Nix — arm64 only.
           Base: v${{ needs.build.outputs.version }}, build ${{ github.run_number }}
