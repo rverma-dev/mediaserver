@@ -65,6 +65,7 @@ in {
       ExecStart = "${pkgs.qbittorrent-nox}/bin/qbittorrent-nox --webui-port=8080 --profile=${vars.mediaRoot}/config/qbittorrent";
       Restart = "always";
       RestartSec = "5s";
+      Environment = ["TZ=${vars.tz}"];
     };
     Install.WantedBy = ["default.target"];
   };

@@ -173,6 +173,7 @@ in {
       IOSchedulingPriority = 7;
       EnvironmentFile = "${vars.mediaRoot}/.env";
       Environment = [
+        "TZ=${vars.tz}"
         "IMMICH_HOST=0.0.0.0"
         "IMMICH_PORT=3001"
         "DB_URL=postgresql:///immich?host=${pgSocketDir}"

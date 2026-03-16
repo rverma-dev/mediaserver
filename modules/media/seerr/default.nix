@@ -15,7 +15,7 @@
       Environment = [
         "CONFIG_DIRECTORY=${vars.mediaRoot}/config/seerr"
         "LOG_LEVEL=warn"
-        "TZ=Asia/Kolkata"
+        "TZ=${vars.tz}"
         "PORT=5055"
       ];
     };

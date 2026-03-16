@@ -23,6 +23,7 @@
       ExecStart = "${vars.pkgs.radarr}/bin/radarr --nobrowser --data=${vars.mediaRoot}/config/radarr";
       Restart = "always";
       RestartSec = "5s";
+      Environment = ["TZ=${vars.tz}"];
       IOSchedulingClass = "best-effort";
       IOSchedulingPriority = 7;
     };

@@ -23,6 +23,7 @@
       ExecStart = "${vars.pkgs.sonarr}/bin/sonarr --nobrowser --data=${vars.mediaRoot}/config/sonarr";
       Restart = "always";
       RestartSec = "5s";
+      Environment = ["TZ=${vars.tz}"];
       IOSchedulingClass = "best-effort";
       IOSchedulingPriority = 7;
     };

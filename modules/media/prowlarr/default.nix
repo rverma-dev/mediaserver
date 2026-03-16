@@ -26,6 +26,7 @@ in {
       ExecStart = "${pkgs.proxychains-ng}/bin/proxychains4 -f ${proxychainsConf} ${vars.pkgs.prowlarr}/bin/prowlarr --nobrowser --data=${vars.mediaRoot}/config/prowlarr";
       Restart = "always";
       RestartSec = "5s";
+      Environment = ["TZ=${vars.tz}"];
     };
     Install.WantedBy = ["default.target"];
   };

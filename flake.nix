@@ -21,6 +21,9 @@
     vars = {
       user = "pi";
       host = "pi";
+      puid = "1000";
+      pgid = "1000";
+      tz = "Asia/Kolkata";
       mediaRoot = "/home/pi/mediaserver";
       hddMountPath = "/mnt/hdd";
       hddDownloadsPath = "/mnt/hdd/downloads";

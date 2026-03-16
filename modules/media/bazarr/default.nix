@@ -24,6 +24,7 @@
       Restart = "always";
       RestartSec = "5s";
       Environment = [
+        "TZ=${vars.tz}"
         "PATH=${pkgs.ffmpeg}/bin:/run/current-system/sw/bin:/usr/bin:/bin"
       ];
     };
