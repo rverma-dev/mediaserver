@@ -9,9 +9,17 @@ load_env || true
 
 PUID="${PUID:-1000}"
 PGID="${PGID:-1000}"
+USER="${USER:-pi}"
+
+# Enable user lingering so systemd user services (immich-db, caddy, arr stack, etc.) run
+# when the user is not logged in (e.g. after SSH disconnect or on headless boot).
+if ! loginctl show-user "${USER}" 2>/dev/null | grep -q 'Linger=yes'; then
+    info "Enabling linger for ${USER} (user services persist without login)..."
+    sudo loginctl enable-linger "${USER}"
+fi
 
 info "Creating config directories..."
-sudo mkdir -p "${MEDIASERVER_ROOT}/config"/{warp,caddy/{data,config},jellyfin,qbittorrent,sonarr,radarr,prowlarr,bazarr,seerr}
+sudo mkdir -p "${MEDIASERVER_ROOT}/config"/{warp,caddy/{data,config},jellyfin,qbittorrent,sonarr,radarr,prowlarr,bazarr,seerr,immich}
 sudo mount -a 2>/dev/null || true
 # Only fix ownership on first run (marker file avoids slow chown -R on re-runs)
 if [[ ! -f "${MEDIASERVER_ROOT}/.init-done" ]]; then
@@ -28,8 +36,9 @@ EOF
 if write_if_changed "$SYSCTL_CONF" "$sysctl_desired"; then
     info "Sysctl tuning: no changes"
 else
-    info "Sysctl tuning: applied ($SYSCTL_CONF)"
-    sudo sysctl -p "$SYSCTL_CONF"
+    grep -q 'vm.overcommit_memory' "$SYSCTL_CONF" 2>/dev/null || echo 'vm.overcommit_memory=1' | sudo tee -a "$SYSCTL_CONF" >/dev/null
+    sudo sysctl -p "$SYSCTL_CONF" 2>/dev/null || true
+    info "Sysctl tuning already in place"
 fi
 
 if [[ -n "${DUCKDNS_SUBDOMAIN:-}" ]]; then

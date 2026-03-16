@@ -57,9 +57,9 @@
         END IF;
       END \$\$;"
 
-    $psql -h "${pgSocketDir}" -tc "SELECT 1 FROM pg_database WHERE datname='immich'" \
+    $psql -h "${pgSocketDir}" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname='immich'" \
       | grep -q 1 || \
-      $psql -h "${pgSocketDir}" -c "CREATE DATABASE immich OWNER immich"
+      $psql -h "${pgSocketDir}" -d postgres -c "CREATE DATABASE immich OWNER immich"
 
     $psql -h "${pgSocketDir}" -d immich -U immich <<'SQL'
       CREATE EXTENSION IF NOT EXISTS unaccent;
