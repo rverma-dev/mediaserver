@@ -1,11 +1,7 @@
 name: Build Seerr
-# dummy push to trigger workflow
+
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/build-seerr.yml'
-      - 'pkgs/seerr/default.nix'
+  # No path trigger: prevents infinite cycle when weekly PR merges version+hash
   workflow_dispatch:
     inputs:
       seerr_version:
@@ -19,6 +15,7 @@ jobs:
   build:
     outputs:
       version: ${{ steps.version.outputs.version }}
+      version_build: ${{ steps.version.outputs.version_build }}
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
@@ -31,11 +28,12 @@ jobs:
         id: version
         run: |
           if [ -n "${{ inputs.seerr_version }}" ]; then
-            echo "version=${{ inputs.seerr_version }}" >> "$GITHUB_OUTPUT"
+            BASE=$(echo "${{ inputs.seerr_version }}" | sed 's/-[0-9]*$//')
           else
-            VERSION=$(grep -E '^\s+version\s*=' pkgs/seerr/default.nix | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
-            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            BASE=$(grep -E '^\s+version\s*=' pkgs/seerr/default.nix | head -1 | sed 's/.*"\([^"]*\)".*/\1/' | sed 's/-[0-9]*$//')
           fi
+          echo "version=${BASE}" >> "$GITHUB_OUTPUT"
+          echo "version_build=${BASE}-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
 
       - name: Clone Seerr
         uses: actions/checkout@v4
@@ -97,7 +95,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: false  # Disabled: tag creation blocked by repo rules. Download binary from workflow Artifacts instead.
+    # Unique tag per run (3.0.1-11) avoids "tag already used" conflicts
     permissions:
       contents: write
 
@@ -109,7 +107,7 @@ jobs:
       - name: Check if release exists
         id: release-check
         run: |
-          if gh release view "seerr-v${{ needs.build.outputs.version }}" &>/dev/null; then
+          if gh release view "seerr-v${{ needs.build.outputs.version_build }}" &>/dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
@@ -134,13 +132,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          tag_name: seerr-v${{ needs.build.outputs.version }}
-          name: Seerr v${{ needs.build.outputs.version }}
+          tag_name: seerr-v${{ needs.build.outputs.version_build }}
+          name: Seerr v${{ needs.build.outputs.version_build }}
           body: |
             Pre-built Seerr (formerly Jellyseerr) for Nix — arm64 (Raspberry Pi) only.
-            Base version: v${{ needs.build.outputs.version }}
+            Base: v${{ needs.build.outputs.version }}, build ${{ github.run_number }}
 
-            **Nix hash** — update `pkgs/seerr/default.nix` or run `./scripts/update-seerr-hashes.sh`:
+            **Nix hash** — set `version = "${{ needs.build.outputs.version_build }}"` in `pkgs/seerr/default.nix`, then run `./scripts/update-seerr-hashes.sh`
             - linux_arm64: `${{ steps.hashes.outputs.arm64_hash }}`
           files: |
             seerr-linux-arm64/seerr-linux-arm64.tar.gz

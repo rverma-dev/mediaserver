@@ -15,6 +15,7 @@ GitHub-private-rv
 
 
 # Transient files
+.seerr-new-version
 *.log
 *.log.*
 *.pid

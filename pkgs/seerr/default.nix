@@ -1,9 +1,9 @@
 # Fetch pre-built Seerr from mediaserver releases (arm64 only).
-# Built by .github/workflows/build-seerr.yml; trigger via push to this file.
-# After build: ./scripts/update-seerr-hashes.sh to populate hashes.
+# Built by .github/workflows/build-seerr.yml; each run creates seerr-v3.0.1-N (N = run number).
+# After build: ./scripts/update-seerr-hashes.sh 3.0.1-N to update version and hash.
 {pkgs, lib}:
 let
-  version = "3.0.1";
+  version = "3.0.1";  # use 3.0.1-N after build (e.g. 3.0.1-11)
   repo = "rverma-dev/mediaserver";
   tag = "seerr-v${version}";
   baseUrl = "https://github.com/${repo}/releases/download/${tag}";

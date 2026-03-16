@@ -8,9 +8,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 check_github_release() {
-  local name="$1" owner="$2" repo="$3" nix_file="$4" include_prerelease="${5:-false}"
+  local name="$1" owner="$2" repo="$3" nix_file="$4" include_prerelease="${5:-false}" strip_build_suffix="${6:-false}"
 
   current=$(grep 'version = ' "$nix_file" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+  [[ "$strip_build_suffix" == "true" ]] && current=$(echo "$current" | sed 's/-[0-9]*$//')
 
   if [[ "$include_prerelease" == "true" ]]; then
     latest=$(curl -sf "https://api.github.com/repos/${owner}/${repo}/releases" \
@@ -41,7 +42,24 @@ check_github_release "Radarr"   "Radarr"         "Radarr"   "${REPO_ROOT}/pkgs/r
 check_github_release "Prowlarr" "Prowlarr"       "Prowlarr" "${REPO_ROOT}/pkgs/prowlarr/default.nix"
 check_github_release "Bazarr"   "morpheus65535"   "bazarr"   "${REPO_ROOT}/pkgs/bazarr/default.nix"
 check_github_release "Jellyfin" "jellyfin"       "jellyfin" "${REPO_ROOT}/pkgs/jellyfin/default.nix"
-check_github_release "Seerr"    "seerr-team"     "seerr"    "${REPO_ROOT}/pkgs/seerr/default.nix"
+# Seerr: strip build suffix (3.0.1-11 → 3.0.1) for comparison; write new version for workflow when update needed
+check_seerr() {
+  local nix_file="${REPO_ROOT}/pkgs/seerr/default.nix"
+  current=$(grep 'version = ' "$nix_file" | head -1 | sed 's/.*"\(.*\)".*/\1/' | sed 's/-[0-9]*$//')
+  latest=$(curl -sf "https://api.github.com/repos/seerr-team/seerr/releases/latest" | jq -r '.tag_name' | sed 's/^v//')
+  if [[ -z "$latest" || "$latest" == "null" ]]; then
+    echo "  Seerr: failed to fetch latest version"
+    return
+  fi
+  if [[ "$current" == "$latest" ]]; then
+    echo "  Seerr: ${current} (up to date)"
+    rm -f "${REPO_ROOT}/.seerr-new-version"
+  else
+    echo "  Seerr: ${current} → ${latest} ⬆"
+    echo "$latest" > "${REPO_ROOT}/.seerr-new-version"
+  fi
+}
+check_seerr
 
 echo ""
 echo "=== Flake inputs ==="

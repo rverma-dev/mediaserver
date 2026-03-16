@@ -30,6 +30,8 @@ arm64_hash=$(nix-prefetch-url "$arm64_url" 2>/dev/null || {
 arm64_sri="sha256-$(echo -n "$arm64_hash" | xxd -r -p | base64 -w0)"
 echo "  linux_arm64: $arm64_sri"
 
+# Update version and hash in default.nix
+sed -i "s|version = \"[^\"]*\";|version = \"${version}\";|" "$NIX_FILE"
 sed -i "s|hash = \"[^\"]*\";  # arm64|hash = \"${arm64_sri}\";  # arm64|" "$NIX_FILE"
 
-echo "Updated $NIX_FILE"
+echo "Updated $NIX_FILE (version ${version})"

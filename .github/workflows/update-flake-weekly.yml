@@ -23,6 +23,47 @@ jobs:
       - name: Check upstream versions
         run: ./scripts/check-updates.sh
 
+      - name: Set Seerr update flag
+        id: seerr
+        run: |
+          if [ -f .seerr-new-version ]; then
+            echo "version=$(cat .seerr-new-version)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Seerr update (build + hash)
+        if: steps.seerr.outputs.version != ''
+        run: |
+          SEERR_NEW="${{ steps.seerr.outputs.version }}"
+          echo "Seerr update: building $SEERR_NEW..."
+
+          # Bump version in default.nix (hash placeholder; real hash added after build)
+          sed -i "s|version = \"[^\"]*\";|version = \"${SEERR_NEW}\";  # base, build adds -N|" pkgs/seerr/default.nix
+
+          # Dispatch build-seerr and wait
+          gh workflow run "Build Seerr" -f "seerr_version=${SEERR_NEW}"
+          sleep 10
+          RUN_ID=$(gh run list --workflow="Build Seerr" --limit 1 --json databaseId -q '.[0].databaseId')
+          gh run watch "$RUN_ID" --exit-status
+
+          # Get run number → version_build (e.g. 3.1.0-12)
+          RUN_NUM=$(gh run view "$RUN_ID" --json runNumber -q '.runNumber')
+          VERSION_BUILD="${SEERR_NEW}-${RUN_NUM}"
+
+          # Fetch hash from release
+          TAG="seerr-v${VERSION_BUILD}"
+          HASH=$(gh release view "$TAG" --repo rverma-dev/mediaserver 2>/dev/null | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
+          if [ -z "$HASH" ]; then
+            HASH=$(curl -sfL "https://github.com/rverma-dev/mediaserver/releases/download/${TAG}/hashes.txt" | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
+          fi
+
+          # Update default.nix with version_build and hash
+          sed -i "s|version = \"[^\"]*\";.*|version = \"${VERSION_BUILD}\";|" pkgs/seerr/default.nix
+          sed -i "s|hash = \"[^\"]*\";  # arm64|hash = \"${HASH}\";  # arm64|" pkgs/seerr/default.nix
+
+          rm -f .seerr-new-version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create PR
         uses: peter-evans/create-pull-request@v7
         with:
@@ -32,9 +73,9 @@ jobs:
 
             - `nix flake update` (nixpkgs, home-manager)
             - Upstream version check for Caddy, Seerr
+            - **Seerr**: When a new upstream version is detected, triggers build, fetches hash, and includes both in this PR. Merge → pull → `make build` for a full update.
 
             > Review the version check output in the workflow run for details.
-            > If a package version bumped, update the source hash and rebuild.
           commit-message: 'chore: update flake inputs'
           branch: auto/weekly-update
           delete-branch: true
