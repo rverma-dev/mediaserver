@@ -5,7 +5,7 @@
 	}
 }
 
-# HTTPS — DuckDNS domain only, OpenClaw gateway catch-all (runs in ~/openclaw)
+# HTTPS — DuckDNS domain only, CursorClaw gateway catch-all (runs in ~/claw)
 {$DUCKDNS_SUBDOMAIN}.duckdns.org {
 	tls {
 		dns duckdns {$DUCKDNS_TOKEN}
@@ -82,7 +82,7 @@
 	}
 }
 
-# HTTPS port 9443 — Seerr only (separate from OpenClaw root)
+# HTTPS port 9443 — Seerr only (separate from CursorClaw root)
 {$DUCKDNS_SUBDOMAIN}.duckdns.org:9443 {
 	tls {
 		dns duckdns {$DUCKDNS_TOKEN}

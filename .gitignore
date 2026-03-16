@@ -16,6 +16,9 @@ GitHub-private-rv
 
 # Transient files
 .seerr-new-version
+.claw-new-version
+.claw-brain-new-version
+.init-done
 *.log
 *.log.*
 *.pid
@@ -24,3 +27,5 @@ GitHub-private-rv
 *.db-shm
 *.db-wal
 *.db-journal
+
+.cursor/

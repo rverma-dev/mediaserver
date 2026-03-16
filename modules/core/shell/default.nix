@@ -172,7 +172,7 @@
       # History dedup
       setopt HIST_REDUCE_BLANKS HIST_FIND_NO_DUPS
 
-      # Cursor Agent CLI (used by headless Cursor and OpenClaw cursor-bridge)
+      # Cursor Agent CLI (used by headless Cursor and CursorClaw bridge)
       if [[ -f ${vars.mediaRoot}/.env ]] && [[ -z "$CURSOR_API_KEY" ]]; then
         export CURSOR_API_KEY=$(grep -m1 '^CURSOR_API_KEY=' ${vars.mediaRoot}/.env | cut -d= -f2)
       fi

@@ -124,7 +124,7 @@ jobs:
             echo ""
             echo "linux_arm64: $ARM64_SRI"
             echo ""
-            echo "Or run: ./scripts/update-seerr-hashes.sh"
+            echo "Or run: ./.github/scripts/update-seerr-hashes.sh"
           } >> hashes.txt
 
       - name: Create release
@@ -138,7 +138,7 @@ jobs:
             Pre-built Seerr (formerly Jellyseerr) for Nix — arm64 (Raspberry Pi) only.
             Base: v${{ needs.build.outputs.version }}, build ${{ github.run_number }}
 
-            **Nix hash** — set `version = "${{ needs.build.outputs.version_build }}"` in `pkgs/seerr/default.nix`, then run `./scripts/update-seerr-hashes.sh`
+            **Nix hash** — set `version = "${{ needs.build.outputs.version_build }}"` in `pkgs/seerr/default.nix`, then run `./.github/scripts/update-seerr-hashes.sh`
             - linux_arm64: `${{ steps.hashes.outputs.arm64_hash }}`
           files: |
             seerr-linux-arm64/seerr-linux-arm64.tar.gz

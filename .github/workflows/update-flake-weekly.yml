@@ -1,8 +1,8 @@
-name: Weekly Flake Update
+name: Weekly Update
 
 on:
   schedule:
-    - cron: '0 6 * * 1' # Monday 6 AM UTC
+    - cron: '0 6 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -20,63 +20,96 @@ jobs:
       - name: Update flake inputs
         run: nix flake update
 
-      - name: Check upstream versions
-        run: ./scripts/check-updates.sh
+      - name: Auto-update packages
+        id: pkgs
+        run: ./.github/scripts/auto-update-pkgs.sh --update
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set Seerr update flag
-        id: seerr
+      - name: Seerr build + hash
+        if: hashFiles('.seerr-new-version') != ''
         run: |
-          if [ -f .seerr-new-version ]; then
-            echo "version=$(cat .seerr-new-version)" >> $GITHUB_OUTPUT
-          fi
+          SEERR_NEW="$(cat .seerr-new-version)"
+          echo "Seerr: building $SEERR_NEW..."
 
-      - name: Seerr update (build + hash)
-        if: steps.seerr.outputs.version != ''
-        run: |
-          SEERR_NEW="${{ steps.seerr.outputs.version }}"
-          echo "Seerr update: building $SEERR_NEW..."
+          sed -i "s|version = \"[^\"]*\";|version = \"${SEERR_NEW}\";|" pkgs/seerr/default.nix
 
-          # Bump version in default.nix (hash placeholder; real hash added after build)
-          sed -i "s|version = \"[^\"]*\";|version = \"${SEERR_NEW}\";  # base, build adds -N|" pkgs/seerr/default.nix
-
-          # Dispatch build-seerr and wait
           gh workflow run "Build Seerr" -f "seerr_version=${SEERR_NEW}"
           sleep 10
           RUN_ID=$(gh run list --workflow="Build Seerr" --limit 1 --json databaseId -q '.[0].databaseId')
           gh run watch "$RUN_ID" --exit-status
 
-          # Get run number → version_build (e.g. 3.1.0-12)
           RUN_NUM=$(gh run view "$RUN_ID" --json runNumber -q '.runNumber')
           VERSION_BUILD="${SEERR_NEW}-${RUN_NUM}"
 
-          # Fetch hash from release
           TAG="seerr-v${VERSION_BUILD}"
-          HASH=$(gh release view "$TAG" --repo rverma-dev/mediaserver 2>/dev/null | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
+          HASH=$(gh release view "$TAG" --repo rverma-dev/mediaserver 2>/dev/null \
+            | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
           if [ -z "$HASH" ]; then
-            HASH=$(curl -sfL "https://github.com/rverma-dev/mediaserver/releases/download/${TAG}/hashes.txt" | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
+            HASH=$(curl -sfL \
+              "https://github.com/rverma-dev/mediaserver/releases/download/${TAG}/hashes.txt" \
+              | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
           fi
 
-          # Update default.nix with version_build and hash
           sed -i "s|version = \"[^\"]*\";.*|version = \"${VERSION_BUILD}\";|" pkgs/seerr/default.nix
           sed -i "s|hash = \"[^\"]*\";  # arm64|hash = \"${HASH}\";  # arm64|" pkgs/seerr/default.nix
-
           rm -f .seerr-new-version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Claw build + hash
+        if: hashFiles('.claw-new-version') != '' || hashFiles('.claw-brain-new-version') != ''
+        run: |
+          CLAW_VER=""; BRAIN_VER=""
+          [[ -f .claw-new-version ]] && CLAW_VER=$(cat .claw-new-version)
+          [[ -f .claw-brain-new-version ]] && BRAIN_VER=$(cat .claw-brain-new-version)
+
+          gh workflow run "Build Claw" \
+            -f "claw_version=${CLAW_VER}" \
+            -f "brain_version=${BRAIN_VER}"
+          sleep 10
+          RUN_ID=$(gh run list --workflow="Build Claw" --limit 1 --json databaseId -q '.[0].databaseId')
+          gh run watch "$RUN_ID" --exit-status
+
+          if [[ -n "$CLAW_VER" ]]; then
+            HASH=$(gh release view "claw-v${CLAW_VER}" --json body -q '.body' \
+              | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
+            sed -i "s|version = \"[^\"]*\"|version = \"${CLAW_VER}\"|" pkgs/claw/default.nix
+            sed -i "s|hash = \"[^\"]*\"|hash = \"${HASH}\"|" pkgs/claw/default.nix
+            rm -f .claw-new-version
+          fi
+
+          if [[ -n "$BRAIN_VER" ]]; then
+            HASH=$(gh release view "claw-cursor-brain-v${BRAIN_VER}" --json body -q '.body' \
+              | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
+            sed -i "s|version = \"[^\"]*\"|version = \"${BRAIN_VER}\"|" pkgs/claw-cursor-brain/default.nix
+            sed -i "s|hash = \"[^\"]*\"|hash = \"${HASH}\"|" pkgs/claw-cursor-brain/default.nix
+            rm -f .claw-brain-new-version
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create PR
+        id: pr
         uses: peter-evans/create-pull-request@v7
         with:
-          title: 'chore: weekly flake & dependency update'
+          title: 'chore: weekly dependency update'
           body: |
             Automated weekly update.
 
-            - `nix flake update` (nixpkgs, home-manager)
-            - Upstream version check for Caddy, Seerr
-            - **Seerr**: When a new upstream version is detected, triggers build, fetches hash, and includes both in this PR. Merge → pull → `make build` for a full update.
+            **Flake inputs** — `nix flake update` (nixpkgs → Caddy, Immich; home-manager)
 
-            > Review the version check output in the workflow run for details.
-          commit-message: 'chore: update flake inputs'
+            **Packages** (auto-prefetched hashes)
+            ${{ steps.pkgs.outputs.summary }}
+
+            > Merge → `make activate` on Pi.
+          commit-message: 'chore: weekly dependency update'
           branch: auto/weekly-update
           delete-branch: true
           labels: dependencies
+
+      - name: Auto-merge
+        if: steps.pr.outputs.pull-request-number
+        run: gh pr merge --squash "${{ steps.pr.outputs.pull-request-number }}" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

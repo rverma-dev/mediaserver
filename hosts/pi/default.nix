@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   vars,
   ...
@@ -10,24 +11,27 @@
   home.stateVersion = "24.11";
   programs.home-manager.enable = true;
 
-  home.packages = with pkgs; [
-    cursor-cli
-    vars.pkgs.caddy-duckdns
-    vars.pkgs.sonarr
-    vars.pkgs.radarr
-    vars.pkgs.prowlarr
-    vars.pkgs.bazarr
-    vars.pkgs.jellyfin
-    vars.pkgs.seerr
-    vars.pkgs.camera-mock
-    git
-    curl
-    jq
-    ripgrep
-    python3
-    uv
-    ffmpeg
-    wireproxy
-    proxychains-ng
-  ];
+  home.packages = with pkgs;
+    [
+      vars.pkgs.cursor-cli
+      vars.pkgs.caddy-duckdns
+      vars.pkgs.sonarr
+      vars.pkgs.radarr
+      vars.pkgs.prowlarr
+      vars.pkgs.bazarr
+      vars.pkgs.jellyfin
+      vars.pkgs.seerr
+      git
+      curl
+      jq
+      ripgrep
+      python3
+      uv
+      ffmpeg
+      wireproxy
+      proxychains-ng
+    ]
+    ++ lib.optionals (vars.pkgs ? camera-mock) [
+      vars.pkgs.camera-mock
+    ];
 }

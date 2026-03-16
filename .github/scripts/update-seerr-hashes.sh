@@ -2,13 +2,12 @@
 # Fetch Seerr release hashes and update pkgs/seerr/default.nix.
 # Run after .github/workflows/build-seerr.yml creates a release.
 #
-# Usage: ./scripts/update-seerr-hashes.sh [version]
+# Usage: ./.github/scripts/update-seerr-hashes.sh [version]
 #   version: optional, defaults to value in pkgs/seerr/default.nix
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 NIX_FILE="${REPO_ROOT}/pkgs/seerr/default.nix"
 REPO="rverma-dev/mediaserver"
 

@@ -1,0 +1,10 @@
+[
+  ./sonarr
+  ./radarr
+  ./prowlarr
+  ./bazarr
+  ./jellyfin
+  ./seerr
+  ./qbittorrent
+  ./immich
+]

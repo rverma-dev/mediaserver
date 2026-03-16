@@ -1,16 +1,8 @@
-[
-  ./shell
-  ./nix-maintenance
-  ./caddy
-  ./sonarr
-  ./radarr
-  ./prowlarr
-  ./bazarr
-  ./jellyfin
-  ./seerr
-  ./qbittorrent
-  ./warp
-  ./immich
-  ./monitoring
-  ./camera-mock
-]
+let
+  core = import ./core;
+  media = import ./media;
+  infra = import ./infra;
+  ai = import ./ai;
+  custom = import ./custom;
+in
+  core ++ media ++ infra ++ ai ++ custom
