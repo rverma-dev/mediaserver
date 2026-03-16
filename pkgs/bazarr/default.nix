@@ -1,5 +1,5 @@
 {pkgs}: let
-  version = "1.5.5";
+  version = "1.5.6";
   python = pkgs.python3.withPackages (ps: [
     ps.pillow
     ps.lxml
@@ -13,7 +13,7 @@ in
 
     src = pkgs.fetchurl {
       url = "https://github.com/morpheus65535/bazarr/releases/download/v${version}/bazarr.zip";
-      hash = "sha256-VG3YVTnlgzpBVbudQRXwPEaVC4FiMOlHQLLPdDbRc2s=";
+      hash = "sha256-P5YjwnyjpZcxMxC3y/mPOcteSquQfKZpDCG7Jfam67Q=";
     };
 
     nativeBuildInputs = [pkgs.unzip pkgs.makeWrapper];
