@@ -126,11 +126,9 @@ jobs:
           git push origin auto/weekly-update
 
       - name: Create PR
-        id: pr
         run: |
-          PR_NUM=$(gh pr list --head auto/weekly-update --base main --json number -q '.[0].number' 2>/dev/null || true)
-          if [[ -z "$PR_NUM" ]]; then
-            PR_NUM=$(gh pr create \
+          if ! gh pr list --head auto/weekly-update --base main --json number -q '.[0].number' | grep -q .; then
+            gh pr create \
               --title "chore: weekly dependency update" \
               --body "Automated weekly update.
 
@@ -142,15 +140,14 @@ jobs:
           > Merge → \`make activate\` on Pi." \
               --head auto/weekly-update \
               --base main \
-              --label dependencies \
-              2>&1 | grep -oP '\d+$' || true)
+              --label dependencies
           fi
-          echo "number=$PR_NUM" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto-merge
-        if: steps.pr.outputs.number != ''
-        run: gh pr merge "${{ steps.pr.outputs.number }}" --squash --delete-branch || true
+        run: |
+          PR_NUM=$(gh pr list --head auto/weekly-update --base main --json number -q '.[0].number' || true)
+          [[ -n "$PR_NUM" ]] && gh pr merge "$PR_NUM" --squash --delete-branch || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

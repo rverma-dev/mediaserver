@@ -115,43 +115,27 @@ jobs:
         with:
           name: seerr-linux-arm64
 
-      - name: Check if release exists
-        id: release-check
-        run: |
-          if gh release view "seerr-v${{ needs.build.outputs.version_build }}" &>/dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Compute hash for release notes
+      - name: Compute hash
         id: hashes
         run: |
           ARM64_SHA256=$(sha256sum -b seerr-linux-arm64/seerr-linux-arm64.tar.gz | awk '{print $1}')
           ARM64_SRI="sha256-$(echo -n "$ARM64_SHA256" | xxd -r -p | base64 -w0)"
           echo "arm64_hash=${ARM64_SRI}" >> "$GITHUB_OUTPUT"
-          {
-            echo "Nix hash — update pkgs/seerr/default.nix:"
-            echo ""
-            echo "linux_arm64: $ARM64_SRI"
-            echo ""
-            echo "Or run: ./.github/scripts/update-seerr-hashes.sh"
-          } >> hashes.txt
 
       - name: Create release
-        if: steps.release-check.outputs.exists == 'false'
-        uses: softprops/action-gh-release@v2
-        with:
-          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          tag_name: seerr-v${{ needs.build.outputs.version_build }}
-          name: Seerr v${{ needs.build.outputs.version_build }}
-          body: |
-            Pre-built Seerr (formerly Jellyseerr) for Nix — arm64 (Raspberry Pi) only.
-            Base: v${{ needs.build.outputs.version }}, build ${{ github.run_number }}
+        run: |
+          TAG="seerr-v${{ needs.build.outputs.version_build }}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" &>/dev/null; then
+            echo "Release $TAG already exists, skipping"
+            exit 0
+          fi
+          gh release create "$TAG" \
+            seerr-linux-arm64/seerr-linux-arm64.tar.gz \
+            --title "Seerr v${{ needs.build.outputs.version_build }}" \
+            --notes "Pre-built Seerr for Nix — arm64 only.
+          Base: v${{ needs.build.outputs.version }}, build ${{ github.run_number }}
 
-            **Nix hash** — set `version = "${{ needs.build.outputs.version_build }}"` in `pkgs/seerr/default.nix`, then run `./.github/scripts/update-seerr-hashes.sh`
-            - linux_arm64: `${{ steps.hashes.outputs.arm64_hash }}`
-          files: |
-            seerr-linux-arm64/seerr-linux-arm64.tar.gz
-            hashes.txt
-          make_latest: false
+          Nix hash: \`${{ steps.hashes.outputs.arm64_hash }}\`" \
+            --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
