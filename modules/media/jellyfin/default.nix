@@ -28,7 +28,7 @@
       RestartSec = "5s";
       Environment = [
         "TZ=${vars.tz}"
-        "JELLYFIN_PublishedServerUrl=http://192.168.68.60/jellyfin"
+        "JELLYFIN_PublishedServerUrl=http://${vars.lanIp}/jellyfin"
         "PATH=${pkgs.ffmpeg}/bin:/run/current-system/sw/bin:/usr/bin:/bin"
       ];
     };

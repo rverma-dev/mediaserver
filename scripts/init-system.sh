@@ -54,6 +54,35 @@ else
     warn "DUCKDNS_SUBDOMAIN not set — skipping hosts entry"
 fi
 
+# Optional: static LAN IP (e.g. to match DuckDNS mapping 192.168.68.60)
+if [[ -n "${PI_LAN_IP:-}" && -n "${PI_LAN_GW:-}" ]]; then
+    if command -v dhcpcd &>/dev/null; then
+        IFACE=$(ip -o -4 route show to default 2>/dev/null | awk '{print $5}' | head -1)
+        if [[ -n "$IFACE" ]]; then
+            sudo mkdir -p /etc/dhcpcd.conf.d
+            DEST="/etc/dhcpcd.conf.d/99-mediaserver-static.conf"
+            DESIRED="interface $IFACE
+static ip_address=${PI_LAN_IP}/24
+static routers=${PI_LAN_GW}
+static domain_name_servers=${PI_LAN_GW}"
+            if [[ ! -f "$DEST" ]] || ! diff -q <(echo "$DESIRED") "$DEST" &>/dev/null; then
+                info "Configuring static IP ${PI_LAN_IP} on $IFACE (gateway ${PI_LAN_GW})..."
+                sudo mkdir -p "$(dirname "$DEST")"
+                echo "$DESIRED" | sudo tee "$DEST" >/dev/null
+                info "Static IP configured. Reboot or restart dhcpcd to apply."
+            else
+                info "Static IP ${PI_LAN_IP} already configured"
+            fi
+        else
+            warn "Could not detect default interface — skipping static IP"
+        fi
+    else
+        warn "dhcpcd not found — set static IP manually (router DHCP reservation recommended)"
+    fi
+elif [[ -n "${PI_LAN_IP:-}" ]]; then
+    warn "PI_LAN_IP set but PI_LAN_GW missing — skipping static IP (router DHCP reservation is an alternative)"
+fi
+
 if command -v ufw &>/dev/null; then
     ufw_status=$(sudo ufw status 2>/dev/null)
     ufw_active=$(echo "$ufw_status" | grep -q "^Status: active" && echo yes || echo no)

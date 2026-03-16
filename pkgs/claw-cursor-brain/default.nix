@@ -14,7 +14,7 @@ in
 
     src = pkgs.fetchurl {
       url = "https://github.com/${repo}/releases/download/${tag}/claw-cursor-brain-${version}.tar.gz";
-      hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      hash = "sha256-iq8hSfWwlIhJmgHOXrSxNvGZlfJuC+gbHQV2TGB6PiU=";
     };
 
     sourceRoot = "claw-cursor-brain";

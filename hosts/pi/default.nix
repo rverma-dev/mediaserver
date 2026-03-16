@@ -21,6 +21,8 @@
       vars.pkgs.bazarr
       vars.pkgs.jellyfin
       vars.pkgs.seerr
+      vars.pkgs.claw
+      vars.pkgs.claw-cursor-brain
       git
       curl
       jq

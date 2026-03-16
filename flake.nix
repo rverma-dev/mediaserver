@@ -24,6 +24,7 @@
       puid = "1000";
       pgid = "1000";
       tz = "Asia/Kolkata";
+      lanIp = "192.168.68.60";
       mediaRoot = "/home/pi/mediaserver";
       hddMountPath = "/mnt/hdd";
       hddDownloadsPath = "/mnt/hdd/downloads";

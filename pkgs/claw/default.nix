@@ -14,7 +14,7 @@ in
 
     src = pkgs.fetchurl {
       url = "https://github.com/${repo}/releases/download/${tag}/claw-${version}.tar.gz";
-      hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      hash = "sha256-+giEZgdVcem76/Bakl70O9/DC+VlWmnAm8SA/qPIxSs=";
     };
 
     sourceRoot = "claw";
