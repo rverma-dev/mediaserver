@@ -28,6 +28,7 @@ on:
         required: false
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   NODE_VERSION: '22'
 
 jobs:
