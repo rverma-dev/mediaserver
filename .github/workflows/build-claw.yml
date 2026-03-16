@@ -64,8 +64,7 @@ jobs:
       - name: Compute hash
         id: hash
         run: |
-          SHA=$(sha256sum claw-${{ steps.ver.outputs.version }}.tar.gz | awk '{print $1}')
-          SRI="sha256-$(echo -n "$SHA" | xxd -r -p | base64 -w0)"
+          SRI="sha256-$(openssl dgst -sha256 -binary claw-${{ steps.ver.outputs.version }}.tar.gz | openssl base64 -A)"
           echo "sri=$SRI" >> "$GITHUB_OUTPUT"
 
       - name: Create release
@@ -114,8 +113,7 @@ jobs:
       - name: Compute hash
         id: hash
         run: |
-          SHA=$(sha256sum claw-cursor-brain-${{ steps.ver.outputs.version }}.tar.gz | awk '{print $1}')
-          SRI="sha256-$(echo -n "$SHA" | xxd -r -p | base64 -w0)"
+          SRI="sha256-$(openssl dgst -sha256 -binary claw-cursor-brain-${{ steps.ver.outputs.version }}.tar.gz | openssl base64 -A)"
           echo "sri=$SRI" >> "$GITHUB_OUTPUT"
 
       - name: Create release
