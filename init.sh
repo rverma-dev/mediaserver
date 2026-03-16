@@ -18,6 +18,7 @@ load_env
 
 "${SCRIPT_DIR}/scripts/init-system.sh"
 "${SCRIPT_DIR}/scripts/init-network.sh"
+"${SCRIPT_DIR}/scripts/init-hdd.sh" setup
 "${SCRIPT_DIR}/scripts/init-nix.sh"
 
 touch "${MEDIASERVER_ROOT}/.init-done"

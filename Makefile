@@ -110,6 +110,14 @@ ports: ## Show listening ports
 temps: ## Show CPU temperature
 	@vcgencmd measure_temp 2>/dev/null || echo "vcgencmd not available"
 
+.PHONY: init-hdd
+init-hdd: ## Safe HDD setup: fstab + mount + dirs (idempotent, no format)
+	@bash scripts/init-hdd.sh setup
+
+.PHONY: hdd-format
+hdd-format: ## ONE-TIME ONLY: Format HDD — DESTROYS ALL DATA (usage: make hdd-format DEV=/dev/sdX)
+	@bash scripts/init-hdd.sh format $(DEV)
+
 .PHONY: hdd-uas
 hdd-uas: ## Check USB HDD uses UAS driver
 	@bash scripts/init-hdd.sh uas

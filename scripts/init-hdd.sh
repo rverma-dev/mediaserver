@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Format external HDD and configure fstab for NVMe/HDD split layout.
+# Configure external HDD for NVMe/HDD split layout.
 #
 # Layout: HDD at /mnt/hdd contains:
 #   downloads/{complete,incomplete}  — qBittorrent (Arr hardlink source)
@@ -9,11 +9,12 @@
 # Both downloads and media on same FS = atomic hardlinks.
 #
 # Usage:
-#   ./scripts/init-hdd.sh format /dev/sdX   # Format (DESTROYS ALL DATA)
-#   ./scripts/init-hdd.sh fstab             # Add fstab entry
-#   ./scripts/init-hdd.sh mount             # Mount now
+#   ./scripts/init-hdd.sh setup             # Safe: fstab + mount + dirs (idempotent, no format)
+#   ./scripts/init-hdd.sh format /dev/sdX   # ONE-TIME ONLY: Format (DESTROYS ALL DATA)
+#   ./scripts/init-hdd.sh fstab             # Add fstab entry only
+#   ./scripts/init-hdd.sh mount             # Mount + ensure dirs only
 #
-# Prerequisites: HDD connected. For format: identify device with lsblk.
+# Prerequisites: HDD connected and formatted (label=media). For first-time format: lsblk.
 
 set -euo pipefail
 
@@ -155,13 +156,29 @@ do_mount() {
   info "Mounted at ${MOUNT_PATH}. Layout: downloads/{complete,incomplete}, media/{movies,tv}, immich/library"
 }
 
+# --- setup: safe idempotent init (no format) ---
+# Run this on every bootstrap after the one-time format is done.
+do_setup() {
+  local part_dev
+  part_dev=$(sudo blkid -L media 2>/dev/null || true)
+  [[ -z "$part_dev" ]] && part_dev=$(findmnt -n -o SOURCE "${MOUNT_PATH}" 2>/dev/null || true)
+  if [[ -z "$part_dev" ]]; then
+    warn "HDD with label=media not found. If this is a new drive, run:"
+    warn "  ./scripts/init-hdd.sh format /dev/sdX"
+    return 0
+  fi
+  add_fstab
+  do_mount
+}
+
 # --- main ---
 case "${1:-}" in
+  setup) do_setup ;;
   format) format_drive "${2:?Usage: init-hdd.sh format /dev/sdX}" ;;
   fstab) add_fstab ;;
   mount) do_mount ;;
   uas) check_uas ;;
   spindown) set_spindown "${2:-}" "${3:-0}" ;;
   spindown-service) install_spindown_service "${2:-0}" ;;
-  *) error "Usage: init-hdd.sh {format|fstab|mount|uas|spindown|spindown-service} [args]" ;;
+  *) error "Usage: init-hdd.sh {setup|format|fstab|mount|uas|spindown|spindown-service} [args]" ;;
 esac
