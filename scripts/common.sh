@@ -14,6 +14,28 @@ info()  { echo -e "${GREEN}[INFO]${NC}  $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
+# write_if_changed <path> <content>
+# Writes content to path only if it differs from current content (or file doesn't exist).
+# Returns 0 if no change was needed, 1 if the file was written.
+write_if_changed() {
+    local path="$1"
+    local content="$2"
+    if [[ -f "$path" ]] && diff -q <(echo "$content") "$path" &>/dev/null; then
+        return 0
+    fi
+    echo "$content" | sudo tee "$path" >/dev/null
+    return 1
+}
+
+# apt_updated_recently <seconds>
+# Returns 0 if apt package lists were updated within <seconds> ago.
+apt_updated_recently() {
+    local max_age="${1:-3600}"
+    local stamp
+    stamp=$(find /var/lib/apt/lists -maxdepth 1 -name "*.InRelease" -printf '%T@\n' 2>/dev/null | sort -n | tail -1)
+    [[ -n "$stamp" ]] && (( $(date +%s) - ${stamp%.*} < max_age ))
+}
+
 load_env() {
     [[ -f "${MEDIASERVER_ROOT}/.env" ]] || return 1
     set -a

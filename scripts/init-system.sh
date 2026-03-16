@@ -19,15 +19,17 @@ if [[ ! -f "${MEDIASERVER_ROOT}/.init-done" ]]; then
 fi
 
 SYSCTL_CONF="/etc/sysctl.d/99-mediaserver-nvme.conf"
-if [[ ! -f "$SYSCTL_CONF" ]]; then
-    info "Writing sysctl tuning ($SYSCTL_CONF)..."
-    cat <<'EOF' | sudo tee "$SYSCTL_CONF" >/dev/null
+sysctl_desired=$(cat <<'EOF'
 vm.dirty_ratio=10
 vm.dirty_background_ratio=5
+vm.overcommit_memory=1
 EOF
-    sudo sysctl -p "$SYSCTL_CONF"
+)
+if write_if_changed "$SYSCTL_CONF" "$sysctl_desired"; then
+    info "Sysctl tuning: no changes"
 else
-    info "Sysctl tuning already in place"
+    info "Sysctl tuning: applied ($SYSCTL_CONF)"
+    sudo sysctl -p "$SYSCTL_CONF"
 fi
 
 if [[ -n "${DUCKDNS_SUBDOMAIN:-}" ]]; then
@@ -44,47 +46,61 @@ else
 fi
 
 if command -v ufw &>/dev/null; then
-    info "Configuring UFW..."
-    sudo ufw default deny incoming
-    sudo ufw default allow outgoing
-    sudo ufw allow 22/tcp
-    sudo ufw allow 80/tcp
-    sudo ufw allow 443/tcp
-    sudo ufw allow 9443/tcp
-    sudo ufw allow 6881/tcp
-    sudo ufw allow 6881/udp
-    sudo ufw allow 8554/tcp
-    sudo ufw --force enable 2>/dev/null || warn "UFW enable failed"
+    ufw_status=$(sudo ufw status 2>/dev/null)
+    ufw_active=$(echo "$ufw_status" | grep -q "^Status: active" && echo yes || echo no)
+    ufw_ports="22/tcp 80/tcp 443/tcp 9443/tcp 6881/tcp 6881/udp 8554/tcp"
+    ufw_missing=()
+    for port in $ufw_ports; do
+        echo "$ufw_status" | grep -q "^${port%/*}.*${port##*/}" || ufw_missing+=("$port")
+    done
+    if [[ "$ufw_active" == yes && ${#ufw_missing[@]} -eq 0 ]]; then
+        info "UFW: no changes"
+    else
+        info "UFW: applying rules..."
+        sudo ufw default deny incoming
+        sudo ufw default allow outgoing
+        for port in $ufw_ports; do sudo ufw allow "$port"; done
+        sudo ufw --force enable 2>/dev/null || warn "UFW enable failed"
+    fi
 else
     warn "UFW not installed. Consider: sudo apt install ufw"
 fi
 
 if command -v fail2ban-client &>/dev/null; then
-    info "Enabling Fail2ban..."
-    sudo systemctl enable fail2ban
-    sudo systemctl start fail2ban 2>/dev/null || true
+    if systemctl is-enabled fail2ban &>/dev/null && systemctl is-active fail2ban &>/dev/null; then
+        info "Fail2ban: already enabled and running"
+    else
+        info "Fail2ban: enabling..."
+        sudo systemctl enable fail2ban
+        sudo systemctl start fail2ban 2>/dev/null || true
+    fi
 else
     sudo apt install -y fail2ban 2>/dev/null || warn "Fail2ban install skipped"
 fi
 
-if command -v apt-get &>/dev/null; then
-    info "Configuring unattended-upgrades..."
-    sudo apt-get update -qq
-    sudo apt-get install -y unattended-upgrades 2>/dev/null || warn "Could not install unattended-upgrades"
-    sudo dpkg-reconfigure -plow unattended-upgrades 2>/dev/null || true
-
-    sudo tee /etc/apt/apt.conf.d/20auto-upgrades >/dev/null <<'EOF'
+AUTO_UPGRADES_CONF="/etc/apt/apt.conf.d/20auto-upgrades"
+auto_upgrades_desired=$(cat <<'EOF'
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 APT::Periodic::AutocleanInterval "7";
 APT::Periodic::AutoremoveInterval "7";
 EOF
-
-    if systemctl list-unit-files apt-daily.timer &>/dev/null; then
-        sudo systemctl enable apt-daily.timer 2>/dev/null || true
-        sudo systemctl enable apt-daily-upgrade.timer 2>/dev/null || true
+)
+if command -v apt-get &>/dev/null; then
+    if ! dpkg -s unattended-upgrades &>/dev/null; then
+        info "APT: installing unattended-upgrades..."
+        apt_updated_recently 3600 || sudo apt-get update -qq
+        sudo apt-get install -y unattended-upgrades 2>/dev/null || warn "Could not install unattended-upgrades"
+        sudo dpkg-reconfigure -plow unattended-upgrades 2>/dev/null || true
     fi
-    info "APT maintenance configured"
+    if write_if_changed "$AUTO_UPGRADES_CONF" "$auto_upgrades_desired"; then
+        info "APT maintenance config: no changes"
+    else
+        info "APT maintenance config: applied"
+        for timer in apt-daily.timer apt-daily-upgrade.timer; do
+            systemctl list-unit-files "$timer" &>/dev/null && sudo systemctl enable "$timer" 2>/dev/null || true
+        done
+    fi
 else
     info "APT not available — skipping"
 fi
