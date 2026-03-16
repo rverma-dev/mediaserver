@@ -5,7 +5,6 @@
   camera-mock-src ? null,
 }: let
   base = {
-    caddy-duckdns = pkgs.callPackage ./caddy-duckdns {inherit pkgs;};
     sonarr = pkgs.callPackage ./sonarr {};
     radarr = pkgs.callPackage ./radarr {};
     prowlarr = pkgs.callPackage ./prowlarr {};

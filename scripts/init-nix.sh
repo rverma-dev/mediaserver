@@ -20,4 +20,4 @@ info "Building home-manager config..."
 cd "${MEDIASERVER_ROOT}"
 nix run home-manager -- switch --flake '.#pi' -b backup
 
-info "Nix setup complete. Services: systemctl --user status caddy sonarr radarr jellyfin"
+info "Nix setup complete. Services: systemctl --user status angie sonarr radarr jellyfin"

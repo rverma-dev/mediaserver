@@ -11,7 +11,7 @@ PUID="${PUID:-1000}"
 PGID="${PGID:-1000}"
 USER="${USER:-pi}"
 
-# Enable user lingering so systemd user services (immich-db, caddy, arr stack, etc.) run
+# Enable user lingering so systemd user services (angie, arr stack, immich, etc.) run
 # when the user is not logged in (e.g. after SSH disconnect or on headless boot).
 if ! loginctl show-user "${USER}" 2>/dev/null | grep -q 'Linger=yes'; then
     info "Enabling linger for ${USER} (user services persist without login)..."
@@ -19,7 +19,7 @@ if ! loginctl show-user "${USER}" 2>/dev/null | grep -q 'Linger=yes'; then
 fi
 
 info "Creating config directories..."
-sudo mkdir -p "${MEDIASERVER_ROOT}/config"/{warp,caddy/{data,config},jellyfin,qbittorrent,sonarr,radarr,prowlarr,bazarr,seerr,immich}
+sudo mkdir -p "${MEDIASERVER_ROOT}/config"/{warp,angie,jellyfin,qbittorrent,sonarr,radarr,prowlarr,bazarr,seerr,immich}
 sudo mount -a 2>/dev/null || true
 # Only fix ownership on first run (marker file avoids slow chown -R on re-runs)
 if [[ ! -f "${MEDIASERVER_ROOT}/.init-done" ]]; then

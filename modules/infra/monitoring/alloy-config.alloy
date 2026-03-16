@@ -12,19 +12,6 @@ prometheus.scrape "node" {
   job_name        = "node"
 }
 
-prometheus.exporter.postgres "immich" {
-  data_source_names = [
-    "postgresql:///immich?host=/run/user/1000/immich-postgres&sslmode=disable",
-  ]
-}
-
-prometheus.scrape "postgres" {
-  targets         = prometheus.exporter.postgres.immich.targets
-  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
-  scrape_interval = "60s"
-  job_name        = "immich-postgres"
-}
-
 loki.relabel "journal" {
   forward_to = []
 

@@ -33,15 +33,15 @@ graph LR
   end
 
   subgraph Infra
-    Caddy[Caddy<br/>reverse proxy + TLS] --> Jellyfin
-    Caddy --> qBit
-    Caddy --> Sonarr
-    Caddy --> Radarr
-    Caddy --> Prowlarr
-    Caddy --> Bazarr
-    Caddy --> Immich
-    Caddy --> CursorClaw
-    Caddy --> Seerr
+    Angie[Angie<br/>reverse proxy + TLS] --> Jellyfin
+    Angie --> qBit
+    Angie --> Sonarr
+    Angie --> Radarr
+    Angie --> Prowlarr
+    Angie --> Bazarr
+    Angie --> Immich
+    Angie --> CursorClaw
+    Angie --> Seerr
     Wireproxy[Wireproxy<br/>WARP SOCKS5 :1080] --> Prowlarr
     Wireproxy --> Seerr
   end
@@ -49,7 +49,7 @@ graph LR
 
 ## Public URLs
 
-All served over HTTPS via Caddy + DuckDNS DNS challenge.
+All served over HTTPS via Angie + Lego/DuckDNS DNS challenge.
 
 | Path                          | Service      | Port  |
 | ----------------------------- | ------------ | ----- |
@@ -101,9 +101,9 @@ Self-hosted photo management — upload, organize, backup, and share photos.
 | Component       | Purpose                               | Storage           |
 | --------------- | ------------------------------------- | ----------------- |
 | `immich`        | Server                                | NVMe              |
-| `immich-db`     | PostgreSQL 17 + VectorChord           | `config/immich/`  |
 | `immich-redis`  | Valkey cache                          | NVMe              |
 | Library         | Original images                       | `/mnt/hdd/immich/library` |
+| Database        | Neon PostgreSQL (see `DB_URL` in `.env`) | —             |
 
 ML is disabled on Pi (`IMMICH_MACHINE_LEARNING_ENABLED=false`).
 
@@ -113,13 +113,13 @@ Access: web at `/photos/`, mobile via Immich app, or `immich` CLI.
 
 AI assistant with **Cursor Agent CLI as the brain** — runs in `~/claw` (separate from this repo). Uses [claw-cursor-bridge](https://github.com/andeya/openclaw-cursor-bridge) to delegate reasoning to Cursor. Accessible via WhatsApp, Telegram, and HTTPS at `/`.
 
-Caddy proxies `/` → `127.0.0.1:18789`. See `~/claw/README.md` for setup.
+Angie proxies `/` → `127.0.0.1:18789`. See `~/claw/README.md` for setup.
 
 ### Infrastructure
 
 | Component      | Function                                                        |
 | -------------- | --------------------------------------------------------------- |
-| **Caddy**      | Reverse proxy, TLS via DuckDNS, routes all service paths        |
+| **Angie**       | Reverse proxy (Nginx fork), TLS via Lego/DuckDNS               |
 | **Wireproxy**  | Cloudflare WARP SOCKS5 on `127.0.0.1:1080` for Prowlarr/Seerr  |
 | **Alloy**      | Grafana Cloud agent (optional, set `GCLOUD_RW_API_KEY`)         |
 
@@ -180,7 +180,7 @@ graph TD
     end
 
     subgraph infra/
-      caddy
+      angie
       warp
       monitoring
     end
@@ -191,7 +191,7 @@ graph TD
   end
 
   subgraph pkgs/
-    pkgs/default.nix --> caddy-duckdns & sonarr-pkg & radarr-pkg & prowlarr-pkg
+    pkgs/default.nix --> sonarr-pkg & radarr-pkg & prowlarr-pkg
     pkgs/default.nix --> bazarr-pkg & jellyfin-pkg & seerr-pkg
     pkgs/default.nix --> cursor-cli & claw & claw-cursor-brain
     pkgs/default.nix -.->|optional| camera-mock-pkg
@@ -210,7 +210,7 @@ Apply config: `make build` or `nix run home-manager -- switch --flake '.#pi' -b 
 
 | Variable                         | Purpose                                          |
 | -------------------------------- | ------------------------------------------------ |
-| `DUCKDNS_TOKEN`, `DUCKDNS_SUBDOMAIN` | Caddy TLS (subdomain = `rverma-pi`)         |
+| `DUCKDNS_TOKEN`, `DUCKDNS_SUBDOMAIN` | Angie TLS via Lego (subdomain = `rverma-pi`) |
 | `SONARR_API_KEY`                 | Sonarr config template                           |
 | `RADARR_API_KEY`                 | Radarr config template                           |
 | `PROWLARR_API_KEY`               | Prowlarr config template                         |

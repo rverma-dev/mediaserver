@@ -38,7 +38,7 @@ build-trace: ## Build with --show-trace for debugging
 
 .PHONY: status
 status: ## Show status of all services
-	@systemctl --user status caddy sonarr radarr prowlarr bazarr jellyfin seerr qbittorrent wireproxy camera-mock 2>&1 || true
+	@systemctl --user status angie sonarr radarr prowlarr bazarr jellyfin seerr qbittorrent wireproxy camera-mock 2>&1 || true
 
 .PHONY: logs
 logs: ## Tail all service logs (Ctrl-C to stop)
@@ -46,7 +46,7 @@ logs: ## Tail all service logs (Ctrl-C to stop)
 
 .PHONY: restart
 restart: ## Restart all services
-	systemctl --user restart caddy sonarr radarr prowlarr bazarr jellyfin seerr qbittorrent wireproxy camera-mock
+	systemctl --user restart angie sonarr radarr prowlarr bazarr jellyfin seerr qbittorrent wireproxy camera-mock
 
 .PHONY: check-updates
 check-updates: ## Check for upstream package updates

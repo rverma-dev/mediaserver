@@ -1,5 +1,5 @@
 [
-  ./caddy
+  ./angie
   ./warp
   ./monitoring
 ]

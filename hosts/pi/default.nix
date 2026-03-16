@@ -14,7 +14,7 @@
   home.packages = with pkgs;
     [
       vars.pkgs.cursor-cli
-      vars.pkgs.caddy-duckdns
+      pkgs.angie
       vars.pkgs.sonarr
       vars.pkgs.radarr
       vars.pkgs.prowlarr

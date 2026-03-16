@@ -39,7 +39,7 @@
 
     ms = "cd ${vars.mediaRoot}";
     msl = "journalctl --user -f";
-    mss = "systemctl --user status caddy sonarr radarr prowlarr bazarr jellyfin seerr qbittorrent wireproxy immich immich-db immich-redis";
+    mss = "systemctl --user status angie sonarr radarr prowlarr bazarr jellyfin seerr qbittorrent wireproxy immich immich-redis";
     msr = "systemctl --user restart";
     mslog = "journalctl --user -u";
 
@@ -51,7 +51,7 @@
     warp-status = "curl -s --socks5 127.0.0.1:1080 https://cloudflare.com/cdn-cgi/trace | grep warp";
     warp-ip = "curl -s --socks5 127.0.0.1:1080 https://ifconfig.me";
 
-    immich = "cd ${vars.mediaRoot} && systemctl --user status immich immich-db immich-redis";
+    immich = "cd ${vars.mediaRoot} && systemctl --user status immich immich-redis";
   };
 
   programs.delta = {
