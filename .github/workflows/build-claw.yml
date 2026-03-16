@@ -1,6 +1,23 @@
 name: Build Claw
 
 on:
+  workflow_call:
+    inputs:
+      claw_version:
+        type: string
+        required: false
+      brain_version:
+        type: string
+        required: false
+    outputs:
+      claw_version:
+        value: ${{ jobs.build-claw.outputs.version }}
+      claw_hash:
+        value: ${{ jobs.build-claw.outputs.hash }}
+      brain_version:
+        value: ${{ jobs.build-brain.outputs.version }}
+      brain_hash:
+        value: ${{ jobs.build-brain.outputs.hash }}
   workflow_dispatch:
     inputs:
       claw_version:

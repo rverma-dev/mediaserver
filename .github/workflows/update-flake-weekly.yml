@@ -6,12 +6,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  update:
+  # 1. Update flake inputs + check/update package versions
+  check:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
-
+    outputs:
+      has_changes: ${{ steps.push.outputs.has_changes }}
+      seerr_version: ${{ steps.markers.outputs.seerr_version }}
+      claw_version: ${{ steps.markers.outputs.claw_version }}
+      brain_version: ${{ steps.markers.outputs.brain_version }}
+      summary: ${{ steps.pkgs.outputs.summary }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,90 +31,123 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Seerr build + hash
-        if: hashFiles('.seerr-new-version') != ''
+      - name: Read markers
+        id: markers
         run: |
-          SEERR_NEW="$(cat .seerr-new-version)"
-          echo "Seerr: building $SEERR_NEW..."
+          echo "seerr_version=$(cat .seerr-new-version 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+          echo "claw_version=$(cat .claw-new-version 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+          echo "brain_version=$(cat .claw-brain-new-version 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
 
-          sed -i "s|version = \"[^\"]*\";|version = \"${SEERR_NEW}\";|" pkgs/seerr/default.nix
-
-          gh workflow run "Build Seerr" -f "seerr_version=${SEERR_NEW}"
-          sleep 10
-          RUN_ID=$(gh run list --workflow="Build Seerr" --limit 1 --json databaseId -q '.[0].databaseId')
-          gh run watch "$RUN_ID" --exit-status
-
-          RUN_NUM=$(gh run view "$RUN_ID" --json runNumber -q '.runNumber')
-          VERSION_BUILD="${SEERR_NEW}-${RUN_NUM}"
-
-          TAG="seerr-v${VERSION_BUILD}"
-          HASH=$(gh release view "$TAG" --repo rverma-dev/mediaserver 2>/dev/null \
-            | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
-          if [ -z "$HASH" ]; then
-            HASH=$(curl -sfL \
-              "https://github.com/rverma-dev/mediaserver/releases/download/${TAG}/hashes.txt" \
-              | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
-          fi
-
-          sed -i "s|version = \"[^\"]*\";.*|version = \"${VERSION_BUILD}\";|" pkgs/seerr/default.nix
-          sed -i "s|hash = \"[^\"]*\";  # arm64|hash = \"${HASH}\";  # arm64|" pkgs/seerr/default.nix
-          rm -f .seerr-new-version
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Claw build + hash
-        if: hashFiles('.claw-new-version') != '' || hashFiles('.claw-brain-new-version') != ''
+      - name: Push to update branch
+        id: push
         run: |
-          CLAW_VER=""; BRAIN_VER=""
-          [[ -f .claw-new-version ]] && CLAW_VER=$(cat .claw-new-version)
-          [[ -f .claw-brain-new-version ]] && BRAIN_VER=$(cat .claw-brain-new-version)
-
-          gh workflow run "Build Claw" \
-            -f "claw_version=${CLAW_VER}" \
-            -f "brain_version=${BRAIN_VER}"
-          sleep 10
-          RUN_ID=$(gh run list --workflow="Build Claw" --limit 1 --json databaseId -q '.[0].databaseId')
-          gh run watch "$RUN_ID" --exit-status
-
-          if [[ -n "$CLAW_VER" ]]; then
-            HASH=$(gh release view "claw-v${CLAW_VER}" --json body -q '.body' \
-              | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
-            sed -i "s|version = \"[^\"]*\"|version = \"${CLAW_VER}\"|" pkgs/claw/default.nix
-            sed -i "s|hash = \"[^\"]*\"|hash = \"${HASH}\"|" pkgs/claw/default.nix
-            rm -f .claw-new-version
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B auto/weekly-update
+          git add -A
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore: update flake inputs + package versions"
+            git push -f origin auto/weekly-update
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
 
-          if [[ -n "$BRAIN_VER" ]]; then
-            HASH=$(gh release view "claw-cursor-brain-v${BRAIN_VER}" --json body -q '.body' \
-              | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
-            sed -i "s|version = \"[^\"]*\"|version = \"${BRAIN_VER}\"|" pkgs/claw-cursor-brain/default.nix
-            sed -i "s|hash = \"[^\"]*\"|hash = \"${HASH}\"|" pkgs/claw-cursor-brain/default.nix
-            rm -f .claw-brain-new-version
+  # 2. Build Seerr if new upstream version detected
+  build-seerr:
+    needs: check
+    if: needs.check.outputs.seerr_version != ''
+    uses: ./.github/workflows/build-seerr.yml
+    with:
+      seerr_version: ${{ needs.check.outputs.seerr_version }}
+    secrets: inherit
+    permissions:
+      contents: write
+
+  # 3. Build Claw packages if new npm versions detected
+  build-claw:
+    needs: check
+    if: needs.check.outputs.claw_version != '' || needs.check.outputs.brain_version != ''
+    uses: ./.github/workflows/build-claw.yml
+    with:
+      claw_version: ${{ needs.check.outputs.claw_version }}
+      brain_version: ${{ needs.check.outputs.brain_version }}
+    secrets: inherit
+    permissions:
+      contents: write
+
+  # 4. Apply build hashes, create PR, auto-merge
+  finalize:
+    needs: [check, build-seerr, build-claw]
+    if: always() && needs.check.result == 'success' && needs.check.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: auto/weekly-update
+
+      - name: Apply Seerr hash
+        if: needs.build-seerr.result == 'success'
+        run: |
+          VB="${{ needs.build-seerr.outputs.version_build }}"
+          HASH="${{ needs.build-seerr.outputs.hash }}"
+          [[ -z "$VB" || -z "$HASH" ]] && exit 0
+          sed -i "s|version = \"[^\"]*\"|version = \"${VB}\"|" pkgs/seerr/default.nix
+          sed -i "s|hash = \"[^\"]*\"|hash = \"${HASH}\"|" pkgs/seerr/default.nix
+
+      - name: Apply Claw hashes
+        if: needs.build-claw.result == 'success'
+        run: |
+          CV="${{ needs.build-claw.outputs.claw_version }}"
+          CH="${{ needs.build-claw.outputs.claw_hash }}"
+          BV="${{ needs.build-claw.outputs.brain_version }}"
+          BH="${{ needs.build-claw.outputs.brain_hash }}"
+          if [[ -n "$CV" && -n "$CH" ]]; then
+            sed -i "s|version = \"[^\"]*\"|version = \"${CV}\"|" pkgs/claw/default.nix
+            sed -i "s|hash = \"[^\"]*\"|hash = \"${CH}\"|" pkgs/claw/default.nix
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if [[ -n "$BV" && -n "$BH" ]]; then
+            sed -i "s|version = \"[^\"]*\"|version = \"${BV}\"|" pkgs/claw-cursor-brain/default.nix
+            sed -i "s|hash = \"[^\"]*\"|hash = \"${BH}\"|" pkgs/claw-cursor-brain/default.nix
+          fi
+
+      - name: Commit hash updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "chore: update build hashes"
+          git push origin auto/weekly-update
 
       - name: Create PR
         id: pr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          title: 'chore: weekly dependency update'
-          body: |
-            Automated weekly update.
+        run: |
+          PR_NUM=$(gh pr list --head auto/weekly-update --base main --json number -q '.[0].number' 2>/dev/null || true)
+          if [[ -z "$PR_NUM" ]]; then
+            PR_NUM=$(gh pr create \
+              --title "chore: weekly dependency update" \
+              --body "Automated weekly update.
 
-            **Flake inputs** — `nix flake update` (nixpkgs → Caddy, Immich; home-manager)
+          **Flake inputs** — \`nix flake update\`
 
-            **Packages** (auto-prefetched hashes)
-            ${{ steps.pkgs.outputs.summary }}
+          **Packages**
+          ${{ needs.check.outputs.summary }}
 
-            > Merge → `make activate` on Pi.
-          commit-message: 'chore: weekly dependency update'
-          branch: auto/weekly-update
-          delete-branch: true
-          labels: dependencies
+          > Merge → \`make activate\` on Pi." \
+              --head auto/weekly-update \
+              --base main \
+              --label dependencies \
+              2>&1 | grep -oP '\d+$' || true)
+          fi
+          echo "number=$PR_NUM" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto-merge
-        if: steps.pr.outputs.pull-request-number
-        run: gh pr merge --squash "${{ steps.pr.outputs.pull-request-number }}" || true
+        if: steps.pr.outputs.number != ''
+        run: gh pr merge "${{ steps.pr.outputs.number }}" --squash --delete-branch || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

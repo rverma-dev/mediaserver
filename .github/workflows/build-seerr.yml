@@ -1,7 +1,16 @@
 name: Build Seerr
 
 on:
-  # No path trigger: prevents infinite cycle when weekly PR merges version+hash
+  workflow_call:
+    inputs:
+      seerr_version:
+        type: string
+        required: false
+    outputs:
+      version_build:
+        value: ${{ jobs.build.outputs.version_build }}
+      hash:
+        value: ${{ jobs.release.outputs.arm64_hash }}
   workflow_dispatch:
     inputs:
       seerr_version:
@@ -95,7 +104,8 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    # Unique tag per run (3.0.1-11) avoids "tag already used" conflicts
+    outputs:
+      arm64_hash: ${{ steps.hashes.outputs.arm64_hash }}
     permissions:
       contents: write
 
