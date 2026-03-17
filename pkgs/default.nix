@@ -14,6 +14,7 @@
     cursor-cli = pkgs.callPackage ./cursor-cli {};
     claw = pkgs.callPackage ./claw {inherit pkgs;};
     claw-cursor-brain = pkgs.callPackage ./claw-cursor-brain {inherit pkgs;};
+    openpgp = pkgs.callPackage ./openpgp {inherit pkgs;};
   };
   optional = pkgs.lib.optionalAttrs (camera-mock-src != null) {
     camera-mock = pkgs.callPackage ./camera-mock {src = camera-mock-src;};

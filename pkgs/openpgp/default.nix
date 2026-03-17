@@ -1,0 +1,3 @@
+{pkgs}: {
+  openpgp = pkgs.gnupg;
+}

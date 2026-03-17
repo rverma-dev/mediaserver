@@ -1,4 +1,5 @@
 [
   ./shell
   ./nix-maintenance
+  ./openpgp
 ]
