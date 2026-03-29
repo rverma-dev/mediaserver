@@ -1,0 +1,72 @@
+prometheus.exporter.unix "node" {
+  set_collectors = [
+    "cpu", "diskstats", "filesystem", "loadavg",
+    "meminfo", "netdev", "uname", "thermal_zone",
+  ]
+}
+
+prometheus.scrape "node" {
+  targets         = prometheus.exporter.unix.node.targets
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+  scrape_interval = "60s"
+  job_name        = "node"
+}
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+  rule {
+    source_labels = ["__journal__systemd_user_unit"]
+    target_label  = "user_unit"
+  }
+}
+
+loki.source.journal "systemd" {
+  forward_to    = [loki.write.grafana_cloud.receiver]
+  relabel_rules = loki.relabel.journal.rules
+  labels        = {
+    job      = "systemd-journal",
+    instance = constants.hostname,
+  }
+}
+
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = env("GCLOUD_HOSTED_METRICS_URL")
+
+    basic_auth {
+      username = env("GCLOUD_HOSTED_METRICS_ID")
+      password = env("GCLOUD_RW_API_KEY")
+    }
+
+    queue_config {
+      max_samples_per_send = 500
+      batch_send_deadline  = "5s"
+    }
+  }
+
+  external_labels = {
+    instance = constants.hostname,
+    job      = "mediaserver",
+  }
+}
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = env("GCLOUD_HOSTED_LOGS_URL")
+
+    basic_auth {
+      username = env("GCLOUD_HOSTED_LOGS_ID")
+      password = env("GCLOUD_RW_API_KEY")
+    }
+  }
+
+  external_labels = {
+    instance = constants.hostname,
+    job      = "mediaserver",
+  }
+}

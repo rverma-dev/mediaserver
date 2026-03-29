@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Fetch Seerr release hashes and update pkgs/seerr/default.nix.
+# Run after .github/workflows/build-seerr.yml creates a release.
+#
+# Usage: ./.github/scripts/update-seerr-hashes.sh [version]
+#   version: optional, defaults to value in pkgs/seerr/default.nix
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+NIX_FILE="${REPO_ROOT}/pkgs/seerr/default.nix"
+REPO="rverma-dev/mediaserver"
+
+version="${1:-}"
+if [[ -z "$version" ]]; then
+  version=$(grep -E '^\s+version\s*=' "$NIX_FILE" | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
+fi
+
+tag="seerr-v${version}"
+base_url="https://github.com/${REPO}/releases/download/${tag}"
+arm64_url="${base_url}/seerr-linux-arm64.tar.gz"
+
+echo "Fetching hash for Seerr ${version} (arm64)..."
+arm64_hash=$(nix-prefetch-url "$arm64_url" 2>/dev/null || {
+  echo "Failed to fetch $arm64_url — is release $tag published?" >&2
+  exit 1
+})
+
+arm64_sri="sha256-$(echo -n "$arm64_hash" | xxd -r -p | base64 -w0)"
+echo "  linux_arm64: $arm64_sri"
+
+# Update version and hash in default.nix
+sed -i "s|version = \"[^\"]*\";|version = \"${version}\";|" "$NIX_FILE"
+sed -i "s|hash = \"[^\"]*\";  # arm64|hash = \"${arm64_sri}\";  # arm64|" "$NIX_FILE"
+
+echo "Updated $NIX_FILE (version ${version})"

@@ -1,0 +1,29 @@
+# Runtime state — all service configs seeded by Nix activation scripts
+/config/
+
+# Media and torrent data
+/data/
+
+# Nix build outputs
+result
+result-*
+.direnv/
+
+# Secrets
+.env
+GitHub-private-rv
+
+
+# Transient files
+.seerr-new-version
+.init-done
+*.log
+*.log.*
+*.pid
+*.lock
+!flake.lock
+*.db-shm
+*.db-wal
+*.db-journal
+
+.cursor/

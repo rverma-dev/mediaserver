@@ -1,0 +1,140 @@
+name: Build Seerr
+
+on:
+  workflow_call:
+    inputs:
+      seerr_version:
+        type: string
+        required: false
+    outputs:
+      version_build:
+        value: ${{ jobs.build.outputs.version_build }}
+      hash:
+        value: ${{ jobs.release.outputs.arm64_hash }}
+  workflow_dispatch:
+    inputs:
+      seerr_version:
+        description: 'Seerr version override (e.g. 3.0.1, leave empty to use pkgs/seerr/default.nix)'
+        required: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_VERSION: '22'
+
+jobs:
+  build:
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_build: ${{ steps.version.outputs.version_build }}
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout mediaserver
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          if [ -n "${{ inputs.seerr_version }}" ]; then
+            BASE=$(echo "${{ inputs.seerr_version }}" | sed 's/-[0-9]*$//')
+          else
+            BASE=$(grep -E '^\s+version\s*=' pkgs/seerr/default.nix | head -1 | sed 's/.*"\([^"]*\)".*/\1/' | sed 's/-[0-9]*$//')
+          fi
+          echo "version=${BASE}" >> "$GITHUB_OUTPUT"
+          echo "version_build=${BASE}-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Clone Seerr
+        uses: actions/checkout@v4
+        with:
+          repository: seerr-team/seerr
+          ref: v${{ steps.version.outputs.version }}
+          path: seerr-src
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: seerr-src/pnpm-lock.yaml
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: seerr-src/.next/cache
+          key: seerr-next-arm64-${{ hashFiles('seerr-src/pnpm-lock.yaml') }}
+          restore-keys: seerr-next-arm64-
+
+      - name: Build
+        working-directory: seerr-src
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm prune --prod --ignore-scripts
+          find node_modules -xtype l -delete
+
+      - name: Package
+        run: |
+          mkdir seerr
+          cp -r seerr-src/.next seerr-src/node_modules seerr-src/dist \
+                seerr-src/public seerr-src/package.json seerr/
+          rm -rf seerr/.next/cache
+          [ -f seerr-src/seerr-api.yml ] && cp seerr-src/seerr-api.yml seerr/ || true
+          [ -f seerr-src/jellyseerr-api.yml ] && cp seerr-src/jellyseerr-api.yml seerr/ || true
+          tar czf seerr-linux-arm64.tar.gz seerr/
+
+      - name: Compute SRI hash
+        run: |
+          sri="sha256-$(openssl dgst -sha256 -binary seerr-linux-arm64.tar.gz | openssl base64 -A)"
+          echo "### seerr-linux-arm64" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "sri: ${sri}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seerr-linux-arm64
+          path: seerr-linux-arm64.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      arm64_hash: ${{ steps.hashes.outputs.arm64_hash }}
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: seerr-linux-arm64
+
+      - name: Compute hash
+        id: hashes
+        run: |
+          ls -la seerr-linux-arm64.tar.gz
+          ARM64_SRI="sha256-$(openssl dgst -sha256 -binary seerr-linux-arm64.tar.gz | openssl base64 -A)"
+          echo "arm64_hash=${ARM64_SRI}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        run: |
+          TAG="seerr-v${{ needs.build.outputs.version_build }}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" &>/dev/null; then
+            echo "Release $TAG already exists, skipping"
+            exit 0
+          fi
+          gh release create "$TAG" \
+            seerr-linux-arm64.tar.gz \
+            --title "Seerr v${{ needs.build.outputs.version_build }}" \
+            --notes "Pre-built Seerr for Nix — arm64 only.
+          Base: v${{ needs.build.outputs.version }}, build ${{ github.run_number }}
+
+          Nix hash: \`${{ steps.hashes.outputs.arm64_hash }}\`" \
+            --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

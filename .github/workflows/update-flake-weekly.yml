@@ -1,0 +1,147 @@
+name: Weekly Update
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # 1. Update flake inputs + check/update package versions
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      has_changes: ${{ steps.push.outputs.has_changes }}
+      seerr_version: ${{ steps.markers.outputs.seerr_version }}
+      seerr_skip_build: ${{ steps.seerr-check.outputs.skip }}
+      seerr_existing_vb: ${{ steps.seerr-check.outputs.version_build }}
+      seerr_existing_hash: ${{ steps.seerr-check.outputs.hash }}
+      summary: ${{ steps.pkgs.outputs.summary }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/determinate-nix-action@v3
+
+      - name: Update flake inputs
+        run: nix flake update
+
+      - name: Auto-update packages
+        id: pkgs
+        run: ./.github/scripts/auto-update-pkgs.sh --update
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read markers
+        id: markers
+        run: |
+          echo "seerr_version=$(cat .seerr-new-version 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+
+      - name: Check for existing Seerr release
+        id: seerr-check
+        if: steps.markers.outputs.seerr_version != ''
+        run: |
+          VERSION="$(cat .seerr-new-version 2>/dev/null || true)"
+          EXISTING_TAG=$(gh release list --repo "$GITHUB_REPOSITORY" --json tagName \
+            -q "[.[] | select(.tagName | startswith(\"seerr-v${VERSION}-\"))] | .[0].tagName" \
+            2>/dev/null || true)
+          if [[ -n "$EXISTING_TAG" ]]; then
+            VB="${EXISTING_TAG#seerr-v}"
+            HASH=$(gh release view "$EXISTING_TAG" --repo "$GITHUB_REPOSITORY" --json body \
+              -q '.body' | grep -oP 'sha256-[A-Za-z0-9+/=]+' | head -1)
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "version_build=${VB}" >> "$GITHUB_OUTPUT"
+            echo "hash=${HASH}" >> "$GITHUB_OUTPUT"
+            echo "Existing release found: $EXISTING_TAG (hash: $HASH)"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to update branch
+        id: push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B auto/weekly-update
+          git add -A
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore: update flake inputs + package versions"
+            git push -f origin auto/weekly-update
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # 2. Build Seerr if new upstream version detected AND no existing release
+  build-seerr:
+    needs: check
+    if: needs.check.outputs.seerr_version != '' && needs.check.outputs.seerr_skip_build != 'true'
+    uses: ./.github/workflows/build-seerr.yml
+    with:
+      seerr_version: ${{ needs.check.outputs.seerr_version }}
+    secrets: inherit
+    permissions:
+      contents: write
+
+  # 3. Apply build hashes, create PR, auto-merge
+  finalize:
+    needs: [check, build-seerr]
+    if: always() && needs.check.result == 'success' && needs.check.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: auto/weekly-update
+
+      - name: Apply Seerr hash
+        if: needs.build-seerr.result == 'success' || needs.check.outputs.seerr_existing_hash != ''
+        run: |
+          VB="${{ needs.build-seerr.outputs.version_build || needs.check.outputs.seerr_existing_vb }}"
+          HASH="${{ needs.build-seerr.outputs.hash || needs.check.outputs.seerr_existing_hash }}"
+          [[ -z "$VB" || -z "$HASH" ]] && exit 0
+          sed -i "s|version = \"[^\"]*\"|version = \"${VB}\"|" pkgs/seerr/default.nix
+          sed -i "s|hash = \"[^\"]*\"|hash = \"${HASH}\"|" pkgs/seerr/default.nix
+
+      - name: Commit hash updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "chore: update build hashes"
+          git push origin auto/weekly-update
+
+      - name: Create PR
+        run: |
+          gh label create dependencies --color 0075ca --description "Dependency updates" --force
+          if ! gh pr list --head auto/weekly-update --base main --json number -q '.[0].number' | grep -q .; then
+            gh pr create \
+              --title "chore: weekly dependency update" \
+              --body "Automated weekly update.
+
+          **Flake inputs** — \`nix flake update\`
+
+          **Packages**
+          ${{ needs.check.outputs.summary }}
+
+          > Merge → \`make activate\` on Pi." \
+              --head auto/weekly-update \
+              --base main \
+              --label dependencies
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge
+        run: |
+          PR_NUM=$(gh pr list --head auto/weekly-update --base main --json number -q '.[0].number' || true)
+          [[ -n "$PR_NUM" ]] && gh pr merge "$PR_NUM" --squash --delete-branch || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

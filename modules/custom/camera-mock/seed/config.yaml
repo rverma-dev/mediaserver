@@ -1,0 +1,19 @@
+# camera-mock configuration — edit to match your environment
+interface: eth0
+
+port: 8554
+
+onvif:
+  enabled: false
+
+# Video encoder: auto | v4l2h264enc (Pi HW) | x264enc (software)
+encoder: auto
+
+jellyfin:
+  url: http://localhost:8096/jellyfin
+  api_key: "${JELLYFIN_API_KEY}"
+  collection_id: "a7aa60ac061461f20c4c9eb1a7a6df7f"
+  max_streams: 8
+  loop: true
+
+streams: []
