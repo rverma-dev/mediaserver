@@ -10,7 +10,7 @@
   <ThrottleDelaySeconds>180</ThrottleDelaySeconds>
   <EnableSegmentDeletion>false</EnableSegmentDeletion>
   <SegmentKeepSeconds>720</SegmentKeepSeconds>
-  <HardwareAccelerationType>none</HardwareAccelerationType>
+  <HardwareAccelerationType>vaapi</HardwareAccelerationType>
   <EncoderAppPathDisplay>ffmpeg</EncoderAppPathDisplay>
   <VaapiDevice>/dev/dri/renderD128</VaapiDevice>
   <QsvDevice />
@@ -39,11 +39,12 @@
   <EnableIntelLowPowerH264HwEncoder>false</EnableIntelLowPowerH264HwEncoder>
   <EnableIntelLowPowerHevcHwEncoder>false</EnableIntelLowPowerHevcHwEncoder>
   <EnableHardwareEncoding>true</EnableHardwareEncoding>
-  <AllowHevcEncoding>false</AllowHevcEncoding>
+  <AllowHevcEncoding>true</AllowHevcEncoding>
   <AllowAv1Encoding>false</AllowAv1Encoding>
   <EnableSubtitleExtraction>true</EnableSubtitleExtraction>
   <HardwareDecodingCodecs>
     <string>h264</string>
+    <string>hevc</string>
     <string>vc1</string>
   </HardwareDecodingCodecs>
   <AllowOnDemandMetadataBasedKeyframeExtractionForExtensions>

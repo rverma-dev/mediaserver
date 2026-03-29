@@ -209,4 +209,11 @@
       echo "Default shell set to zsh"
     fi
   '';
+
+  home.activation.disableGpgAgent = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    for unit in gpg-agent.service gpg-agent.socket gpg-agent-browser.socket gpg-agent-extra.socket gpg-agent-ssh.socket; do
+      systemctl --user disable --now "$unit" >/dev/null 2>&1 || true
+      systemctl --user mask --now "$unit" >/dev/null 2>&1 || true
+    done
+  '';
 }

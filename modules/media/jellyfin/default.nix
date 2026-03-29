@@ -35,11 +35,43 @@
     };
     Service = {
       ExecStart = "${vars.pkgs.jellyfin}/bin/jellyfin --datadir ${vars.mediaRoot}/config/jellyfin --cachedir ${vars.mediaRoot}/config/jellyfin/cache";
-      Restart = "always";
-      RestartSec = "5s";
+      ExecStartPre = "${pkgs.writeShellScript "jellyfin-db-guard" ''
+        #!/usr/bin/env sh
+        set -eu
+
+        db_path="${vars.mediaRoot}/config/jellyfin/data/jellyfin.db"
+        broken_root="${vars.mediaRoot}/config/jellyfin/data/.repair-backup"
+        sqlite_bin="${pkgs.sqlite}/bin/sqlite3"
+
+        if [ -f "$db_path" ]; then
+          migration_history=$(
+            "$sqlite_bin" "$db_path" \
+              "SELECT name FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory';" 2>/dev/null
+          ) || true
+          typed_base_items=$(
+            "$sqlite_bin" "$db_path" \
+              "SELECT name FROM sqlite_master WHERE type='table' AND name='TypedBaseItems';" 2>/dev/null
+          ) || true
+
+          if [ "$migration_history" != "__EFMigrationsHistory" ] || [ "$typed_base_items" != "TypedBaseItems" ]; then
+            mkdir -p "$broken_root"
+            ts="$(date +%Y%m%d_%H%M%S)"
+            mv "$db_path" "$broken_root/jellyfin.db.$ts.broken"
+          fi
+        fi
+      ''}";
+      Restart = "on-failure";
+      RestartSec = "10s";
+      StartLimitIntervalSec = 300;
+      StartLimitBurst = 50;
+      TimeoutStopSec = 20;
       Environment = [
         "TZ=${vars.tz}"
         "JELLYFIN_PublishedServerUrl=http://${vars.lanIp}/jellyfin"
+        "JELLYFIN_DATA_DIR=${vars.mediaRoot}/config/jellyfin"
+        "JELLYFIN_CONFIG_DIR=${vars.mediaRoot}/config/jellyfin/config"
+        "JELLYFIN_CACHE_DIR=${vars.mediaRoot}/config/jellyfin/cache"
+        "JELLYFIN_LOG_DIR=${vars.mediaRoot}/config/jellyfin/log"
         "PATH=${pkgs.ffmpeg}/bin:/run/current-system/sw/bin:/usr/bin:/bin"
       ];
     };
