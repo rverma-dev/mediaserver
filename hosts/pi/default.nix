@@ -19,7 +19,6 @@
       vars.pkgs.radarr
       vars.pkgs.prowlarr
       vars.pkgs.bazarr
-      vars.pkgs.jellyfin
       vars.pkgs.seerr
       git
       curl

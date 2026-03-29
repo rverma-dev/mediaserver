@@ -9,7 +9,6 @@
     radarr = pkgs.callPackage ./radarr {};
     prowlarr = pkgs.callPackage ./prowlarr {};
     bazarr = pkgs.callPackage ./bazarr {};
-    jellyfin = pkgs.callPackage ./jellyfin {};
     seerr = pkgs.callPackage ./seerr {};
     cursor-cli = pkgs.callPackage ./cursor-cli {};
   };

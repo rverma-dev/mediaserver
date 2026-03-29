@@ -18,7 +18,7 @@ if ! loginctl show-user "${USER}" 2>/dev/null | grep -q 'Linger=yes'; then
 fi
 
 info "Creating config directories..."
-sudo mkdir -p "${MEDIASERVER_ROOT}/config"/{warp,angie,jellyfin,qbittorrent,sonarr,radarr,prowlarr,bazarr,seerr,immich}
+sudo mkdir -p "${MEDIASERVER_ROOT}/config"/{warp,angie,qbittorrent,sonarr,radarr,prowlarr,bazarr,seerr,immich}
 sudo mount -a 2>/dev/null || true
 # Only fix ownership on first run (marker file avoids slow chown -R on re-runs)
 if [[ ! -f "${MEDIASERVER_ROOT}/.init-done" ]]; then

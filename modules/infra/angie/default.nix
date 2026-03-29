@@ -77,7 +77,6 @@ in {
         "qbittorrent.service"
         "immich.service"
         "seerr.service"
-        "jellyfin.service"
         "wireproxy.service"
       ];
       Wants = [
@@ -88,7 +87,6 @@ in {
         "qbittorrent.service"
         "immich.service"
         "seerr.service"
-        "jellyfin.service"
         "wireproxy.service"
       ];
     };

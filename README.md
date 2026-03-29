@@ -81,12 +81,23 @@ Automated media acquisition pipeline. Prowlarr manages indexers; Sonarr/Radarr r
 | Service       | Function                       | Config                          | Notes                                                    |
 | ------------- | ------------------------------ | ------------------------------- | -------------------------------------------------------- |
 | **Prowlarr**  | Indexer manager                | `config/prowlarr/config.xml`    | Runs through proxychains + WARP to bypass ISP blocking   |
-| **Sonarr**    | TV automation                  | `config/sonarr/config.xml`      | Root folder: `/mnt/hdd/media/tv`                         |
-| **Radarr**    | Movie automation               | `config/radarr/config.xml`      | Root folder: `/mnt/hdd/media/movies`                     |
+| **Sonarr**    | TV automation                  | `config/sonarr/config.xml`      | Root folder: `/mnt/hdd/media/tv`; set HEVC-first quality profile |
+| **Radarr**    | Movie automation               | `config/radarr/config.xml`      | Root folder: `/mnt/hdd/media/movies`; set HEVC-first quality profile |
 | **Bazarr**    | Subtitle manager               | `config/bazarr/config/config.yaml` | Needs ffmpeg in PATH                                  |
 | **qBittorrent** | Torrent client               | `config/qbittorrent/.../qBittorrent.conf` | LAN auth bypass: `192.168.68.0/22`            |
-| **Jellyfin**  | Media server + transcoding     | `config/jellyfin/`              | Prefer H.264/HEVC; AV1/VP9 too slow on Pi               |
+| **Jellyfin**  | Media server + transcoding     | `services.jellyfin`               | Prefer H.264/HEVC; AV1/VP9 too slow on Pi               |
 | **Seerr**     | Request UI for movies/TV       | `config/seerr/settings.json`    | Runs through proxychains + WARP; HTTPS on `:9443`        |
+
+### Pi 5 HEVC Priority (The Golden Child)
+
+- For `sonarr` and `radarr`, prioritize HEVC (H.265) in quality profiles and custom formats first, then H.264.
+- This helps with 4K60 playback/serve paths because Pi 5 has a dedicated HEVC decode block and usually serves these streams with near-zero CPU impact.
+- If you are tuning from the UI:
+  - Sonarr/Radarr → `Settings > Profiles`
+    - Raise HEVC/x265 custom format score relative to AVC/H.264.
+    - Keep H.264 as fallback for compatibility.
+
+  - Keep default transcoding constraints aligned with Pi 5 capabilities (avoid forcing AV1/VP9 unless needed).
 
 ### Immich
 
@@ -180,7 +191,7 @@ graph TD
 
   subgraph pkgs/
     pkgs/default.nix --> sonarr-pkg & radarr-pkg & prowlarr-pkg
-    pkgs/default.nix --> bazarr-pkg & jellyfin-pkg & seerr-pkg
+    pkgs/default.nix --> bazarr-pkg & seerr-pkg
   pkgs/default.nix --> cursor-cli
     pkgs/default.nix -.->|optional| camera-mock-pkg
   end
@@ -199,6 +210,7 @@ Apply config: `make build` or `nix run home-manager -- switch --flake '.#pi' -b 
 | Variable                         | Purpose                                          |
 | -------------------------------- | ------------------------------------------------ |
 | `DUCKDNS_TOKEN`, `DUCKDNS_SUBDOMAIN` | Angie TLS via Lego (subdomain = `rverma-pi`) |
+| `JELLARR_API_KEY`                | API key consumed by Jellarr when syncing Jellyfin |
 | `SONARR_API_KEY`                 | Sonarr config template                           |
 | `RADARR_API_KEY`                 | Radarr config template                           |
 | `PROWLARR_API_KEY`               | Prowlarr config template                         |

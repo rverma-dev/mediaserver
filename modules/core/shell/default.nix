@@ -40,7 +40,7 @@
 
     ms = "cd ${vars.mediaRoot}";
     msl = "journalctl --user -f";
-    mss = "systemctl --user status angie sonarr radarr prowlarr bazarr jellyfin seerr qbittorrent wireproxy immich immich-redis";
+    mss = "systemctl --user status angie sonarr radarr prowlarr bazarr seerr qbittorrent wireproxy immich immich-redis; systemctl status jellyfin 2>/dev/null || true";
     msr = "systemctl --user restart";
     mslog = "journalctl --user -u";
 
@@ -67,22 +67,17 @@
 
   programs.git = {
     enable = true;
+    signing.format = null;
     settings = {
       user = {
         name = "Rohit Verma";
         email = "rverma-dev@users.noreply.github.com";
       };
-      gpg.format = "ssh";
-      user.signingkey = "${config.home.homeDirectory}/.ssh/id_signing";
       init.defaultBranch = "main";
       pull.rebase = true;
       push.autoSetupRemote = true;
       url."git@github.com:".insteadOf = "https://github.com/";
       core.excludesFile = "~/.config/git/gitignore";
-    };
-    signing = {
-      signByDefault = true;
-      format = "ssh";
     };
   };
 

@@ -118,10 +118,6 @@ update_dual "Prowlarr" "Prowlarr" "Prowlarr" "pkgs/prowlarr/default.nix" \
 update_single "Bazarr" "morpheus65535" "bazarr" "pkgs/bazarr/default.nix" \
   "https://github.com/morpheus65535/bazarr/releases/download/vVERSION/bazarr.zip"
 
-update_dual "Jellyfin" "jellyfin" "jellyfin" "pkgs/jellyfin/default.nix" \
-  "https://repo.jellyfin.org/files/server/linux/latest-stable/arm64/jellyfin_VERSION-arm64.tar.gz" \
-  "https://repo.jellyfin.org/files/server/linux/latest-stable/amd64/jellyfin_VERSION-amd64.tar.gz"
-
 check_seerr
 
 echo ""
