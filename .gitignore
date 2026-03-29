@@ -16,8 +16,6 @@ GitHub-private-rv
 
 # Transient files
 .seerr-new-version
-.claw-new-version
-.claw-brain-new-version
 .init-done
 *.log
 *.log.*

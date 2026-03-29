@@ -2,13 +2,14 @@
 # Replaces Caddy: reverse proxy + TLS via Lego/DuckDNS
 
 worker_processes 1;
-error_log /dev/stderr warn;
+error_log /home/pi/mediaserver/config/angie/error.log warn;
 pid /run/user/1000/angie.pid;
 
 events { worker_connections 1024; }
 
 http {
     include __MIME_TYPES_PATH__;
+    access_log /home/pi/mediaserver/config/angie/access.log;
     default_type application/octet-stream;
     sendfile on;
     keepalive_timeout 65;
@@ -16,10 +17,10 @@ http {
 
     server {
         listen 443 ssl;
-        server_name ${DUCKDNS_SUBDOMAIN}.duckdns.org;
+        server_name __DUCKDNS_SUBDOMAIN__.duckdns.org;
 
-        ssl_certificate ${CERT_CRT};
-        ssl_certificate_key ${CERT_KEY};
+        ssl_certificate __CERT_CRT__;
+        ssl_certificate_key __CERT_KEY__;
         ssl_protocols TLSv1.2 TLSv1.3;
 
         # Jellyfin — redirect trailing slash + CORS
@@ -136,26 +137,24 @@ http {
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
-        # CursorClaw catch-all
+        # Root domain -> Seerr
         location / {
-            proxy_pass http://127.0.0.1:18789;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
+            proxy_pass http://127.0.0.1:5055;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
+
     }
 
     # Port 9443 — Seerr only
     server {
         listen 9443 ssl;
-        server_name ${DUCKDNS_SUBDOMAIN}.duckdns.org;
+        server_name __DUCKDNS_SUBDOMAIN__.duckdns.org;
 
-        ssl_certificate ${CERT_CRT};
-        ssl_certificate_key ${CERT_KEY};
+        ssl_certificate __CERT_CRT__;
+        ssl_certificate_key __CERT_KEY__;
         ssl_protocols TLSv1.2 TLSv1.3;
 
         location / {

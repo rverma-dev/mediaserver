@@ -124,25 +124,6 @@ update_dual "Jellyfin" "jellyfin" "jellyfin" "pkgs/jellyfin/default.nix" \
 
 check_seerr
 
-# Claw packages: check npm registry, build handled by workflow
-check_npm() {
-  local name="$1" npm_pkg="$2" nix="${REPO_ROOT}/$3" marker="$4"
-  local cur; cur=$(current_version "$nix")
-  local lat; lat=$(curl -sf "https://registry.npmjs.org/${npm_pkg}/latest" | jq -r '.version')
-  [[ -z "$lat" || "$lat" == "null" ]] && { echo "  $name: ✗ npm fetch failed"; return; }
-
-  if [[ "$cur" == "$lat" ]]; then
-    echo "  $name: $cur ✓"
-    rm -f "${REPO_ROOT}/.${marker}-new-version"
-  else
-    echo "  $name: $cur → $lat ⬆ (build required)"
-    echo "$lat" > "${REPO_ROOT}/.${marker}-new-version"
-  fi
-}
-
-check_npm "Claw"        "openclaw"                "pkgs/claw/default.nix"                "claw"
-check_npm "Claw Brain"  "openclaw-cursor-brain"   "pkgs/claw-cursor-brain/default.nix"   "claw-brain"
-
 echo ""
 echo "Caddy, Immich: via nix flake update (nixpkgs)"
 echo "cursor-cli: manual (no version API)"
@@ -155,8 +136,7 @@ fi
 
 # GitHub Actions outputs
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
-  if (( ${#CHANGED[@]} )) || [[ -f "${REPO_ROOT}/.seerr-new-version" ]] \
-     || [[ -f "${REPO_ROOT}/.claw-new-version" ]] || [[ -f "${REPO_ROOT}/.claw-brain-new-version" ]]; then
+  if (( ${#CHANGED[@]} )) || [[ -f "${REPO_ROOT}/.seerr-new-version" ]]; then
     echo "has_updates=true" >> "$GITHUB_OUTPUT"
   else
     echo "has_updates=false" >> "$GITHUB_OUTPUT"
@@ -166,12 +146,6 @@ if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     for c in "${CHANGED[@]}"; do echo "- $c"; done
     if [[ -f "${REPO_ROOT}/.seerr-new-version" ]]; then
       echo "- Seerr: → $(cat "${REPO_ROOT}/.seerr-new-version") (build triggered)"
-    fi
-    if [[ -f "${REPO_ROOT}/.claw-new-version" ]]; then
-      echo "- Claw: → $(cat "${REPO_ROOT}/.claw-new-version") (build triggered)"
-    fi
-    if [[ -f "${REPO_ROOT}/.claw-brain-new-version" ]]; then
-      echo "- Claw Brain: → $(cat "${REPO_ROOT}/.claw-brain-new-version") (build triggered)"
     fi
     echo 'EOF'
   } >> "$GITHUB_OUTPUT"

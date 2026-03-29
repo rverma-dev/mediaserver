@@ -21,8 +21,6 @@
       vars.pkgs.bazarr
       vars.pkgs.jellyfin
       vars.pkgs.seerr
-      vars.pkgs.claw
-      vars.pkgs.claw-cursor-brain
       git
       curl
       jq
@@ -36,4 +34,16 @@
     ++ lib.optionals (vars.pkgs ? camera-mock) [
       vars.pkgs.camera-mock
     ];
+
+  # Enable OpenPGP with key generation and Git signing
+  services.openpgp = {
+    enable = true;
+    generateKey = true;
+    gitSign = true;
+    keyConfig = {
+      name = "Rohit Verma";
+      email = "rverma-dev@users.noreply.github.com";
+      expireDate = "1y";
+    };
+  };
 }

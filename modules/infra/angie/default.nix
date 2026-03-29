@@ -8,8 +8,8 @@
   legoPath = "${configDir}/lego";
   certDir = "${legoPath}/certificates";
   template = ./angie.conf.template;
-  # Angie uses nginx generic; mime.types typically in share/nginx
-  mimeTypes = "${pkgs.angie}/share/nginx/mime.types";
+  # Angie uses nginx generic; mime.types is in conf/mime.types.
+  mimeTypes = "${pkgs.angie}/conf/mime.types";
   configFile = "${configDir}/angie.conf";
 
   startScript = pkgs.writeShellScript "angie-start" ''
@@ -39,11 +39,14 @@
     export CERT_CRT
     export CERT_KEY
 
-    # envsubst only replaces DUCKDNS_SUBDOMAIN, CERT_CRT, CERT_KEY; sed for mime path
-    envsubst '${"$"}{DUCKDNS_SUBDOMAIN} ${"$"}{CERT_CRT} ${"$"}{CERT_KEY}' < "${template}" \
-      | sed "s|__MIME_TYPES_PATH__|${mimeTypes}|g" > "${configFile}"
+  sed \
+    -e "s|__DUCKDNS_SUBDOMAIN__|${"$"}DUCKDNS_SUBDOMAIN|g" \
+    -e "s|__CERT_CRT__|${"$"}CERT_CRT|g" \
+    -e "s|__CERT_KEY__|${"$"}CERT_KEY|g" \
+    "${template}" \
+    | sed "s|__MIME_TYPES_PATH__|${mimeTypes}|g" > "${configFile}"
 
-    exec nginx -c "${configFile}"
+    exec nginx -c "${configFile}" -g 'daemon off;'
   '';
 
   renewScript = pkgs.writeShellScript "angie-cert-renew" ''

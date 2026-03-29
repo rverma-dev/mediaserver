@@ -1,6 +1,6 @@
 # Raspberry Pi 5 — Nix Media Stack
 
-Single Nix flake that declares the entire Pi: **arr stack**, **Immich**, **Seerr**, **CursorClaw**, and supporting infrastructure. All services are managed via home-manager; all custom packages live under `pkgs/`. Public HTTPS via DuckDNS at `rverma-pi.duckdns.org`.
+Single Nix flake that declares the entire Pi: **arr stack**, **Immich**, **Seerr**, and supporting infrastructure. All services are managed via home-manager; all custom packages live under `pkgs/`. Public HTTPS via DuckDNS at `rverma-pi.duckdns.org`.
 
 ## Architecture
 
@@ -24,10 +24,6 @@ graph LR
     Seerr --> Radarr
   end
 
-  subgraph AI
-    CursorClaw[CursorClaw<br/>AI assistant :18789]
-  end
-
   subgraph Photos
     Immich[Immich<br/>photo mgmt :3001]
   end
@@ -40,7 +36,6 @@ graph LR
     Angie --> Prowlarr
     Angie --> Bazarr
     Angie --> Immich
-    Angie --> CursorClaw
     Angie --> Seerr
     Wireproxy[Wireproxy<br/>WARP SOCKS5 :1080] --> Prowlarr
     Wireproxy --> Seerr
@@ -53,7 +48,6 @@ All served over HTTPS via Angie + Lego/DuckDNS DNS challenge.
 
 | Path                          | Service      | Port  |
 | ----------------------------- | ------------ | ----- |
-| `/`                           | CursorClaw   | 18789 |
 | `/jellyfin/`                  | Jellyfin     | 8096  |
 | `/qbit/`                      | qBittorrent  | 8080  |
 | `/sonarr/`                    | Sonarr       | 8989  |
@@ -108,12 +102,6 @@ Self-hosted photo management — upload, organize, backup, and share photos.
 ML is disabled on Pi (`IMMICH_MACHINE_LEARNING_ENABLED=false`).
 
 Access: web at `/photos/`, mobile via Immich app, or `immich` CLI.
-
-### CursorClaw
-
-AI assistant with **Cursor Agent CLI as the brain** — runs in `~/claw` (separate from this repo). Uses [claw-cursor-bridge](https://github.com/andeya/openclaw-cursor-bridge) to delegate reasoning to Cursor. Accessible via WhatsApp, Telegram, and HTTPS at `/`.
-
-Angie proxies `/` → `127.0.0.1:18789`. See `~/claw/README.md` for setup.
 
 ### Infrastructure
 
@@ -193,7 +181,7 @@ graph TD
   subgraph pkgs/
     pkgs/default.nix --> sonarr-pkg & radarr-pkg & prowlarr-pkg
     pkgs/default.nix --> bazarr-pkg & jellyfin-pkg & seerr-pkg
-    pkgs/default.nix --> cursor-cli & claw & claw-cursor-brain
+  pkgs/default.nix --> cursor-cli
     pkgs/default.nix -.->|optional| camera-mock-pkg
   end
 ```

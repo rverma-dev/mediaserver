@@ -20,8 +20,6 @@ jobs:
       seerr_skip_build: ${{ steps.seerr-check.outputs.skip }}
       seerr_existing_vb: ${{ steps.seerr-check.outputs.version_build }}
       seerr_existing_hash: ${{ steps.seerr-check.outputs.hash }}
-      claw_version: ${{ steps.markers.outputs.claw_version }}
-      brain_version: ${{ steps.markers.outputs.brain_version }}
       summary: ${{ steps.pkgs.outputs.summary }}
     steps:
       - uses: actions/checkout@v4
@@ -41,8 +39,6 @@ jobs:
         id: markers
         run: |
           echo "seerr_version=$(cat .seerr-new-version 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
-          echo "claw_version=$(cat .claw-new-version 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
-          echo "brain_version=$(cat .claw-brain-new-version 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
 
       - name: Check for existing Seerr release
         id: seerr-check
@@ -92,21 +88,9 @@ jobs:
     permissions:
       contents: write
 
-  # 3. Build Claw packages if new npm versions detected
-  build-claw:
-    needs: check
-    if: needs.check.outputs.claw_version != '' || needs.check.outputs.brain_version != ''
-    uses: ./.github/workflows/build-claw.yml
-    with:
-      claw_version: ${{ needs.check.outputs.claw_version }}
-      brain_version: ${{ needs.check.outputs.brain_version }}
-    secrets: inherit
-    permissions:
-      contents: write
-
-  # 4. Apply build hashes, create PR, auto-merge
+  # 3. Apply build hashes, create PR, auto-merge
   finalize:
-    needs: [check, build-seerr, build-claw]
+    needs: [check, build-seerr]
     if: always() && needs.check.result == 'success' && needs.check.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -125,22 +109,6 @@ jobs:
           [[ -z "$VB" || -z "$HASH" ]] && exit 0
           sed -i "s|version = \"[^\"]*\"|version = \"${VB}\"|" pkgs/seerr/default.nix
           sed -i "s|hash = \"[^\"]*\"|hash = \"${HASH}\"|" pkgs/seerr/default.nix
-
-      - name: Apply Claw hashes
-        if: needs.build-claw.result == 'success'
-        run: |
-          CV="${{ needs.build-claw.outputs.claw_version }}"
-          CH="${{ needs.build-claw.outputs.claw_hash }}"
-          BV="${{ needs.build-claw.outputs.brain_version }}"
-          BH="${{ needs.build-claw.outputs.brain_hash }}"
-          if [[ -n "$CV" && -n "$CH" ]]; then
-            sed -i "s|version = \"[^\"]*\"|version = \"${CV}\"|" pkgs/claw/default.nix
-            sed -i "s|hash = \"[^\"]*\"|hash = \"${CH}\"|" pkgs/claw/default.nix
-          fi
-          if [[ -n "$BV" && -n "$BH" ]]; then
-            sed -i "s|version = \"[^\"]*\"|version = \"${BV}\"|" pkgs/claw-cursor-brain/default.nix
-            sed -i "s|hash = \"[^\"]*\"|hash = \"${BH}\"|" pkgs/claw-cursor-brain/default.nix
-          fi
 
       - name: Commit hash updates
         run: |

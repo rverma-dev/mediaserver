@@ -11,7 +11,6 @@ PUID="${PUID:-1000}"
 PGID="${PGID:-1000}"
 USER="${USER:-pi}"
 
-# Enable user lingering so systemd user services (angie, arr stack, immich, etc.) run
 # when the user is not logged in (e.g. after SSH disconnect or on headless boot).
 if ! loginctl show-user "${USER}" 2>/dev/null | grep -q 'Linger=yes'; then
     info "Enabling linger for ${USER} (user services persist without login)..."
