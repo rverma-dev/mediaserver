@@ -9,7 +9,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    jellarr.url = "github:venkyr77/jellarr";
 
     # camera-mock.url = "github:rverma-dev/v1-camera-mock";
   };
@@ -18,7 +17,6 @@
     self,
     nixpkgs,
     home-manager,
-    jellarr,
     ...
   }: let
     vars = {
@@ -76,15 +74,5 @@
           vars = vars // {pkgs = mediaPkgs;};
         };
       };
-
-    nixosConfigurations.myserver = nixpkgs.lib.nixosSystem {
-      system = "aarch64-linux";
-      specialArgs = {
-        inherit vars jellarr;
-      };
-      modules = [
-        ./modules/media/jellarr
-      ];
-    };
   };
 }

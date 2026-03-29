@@ -10,6 +10,7 @@
     prowlarr = pkgs.callPackage ./prowlarr {};
     bazarr = pkgs.callPackage ./bazarr {};
     seerr = pkgs.callPackage ./seerr {};
+    jellarr = pkgs.callPackage ./jellarr {};
     cursor-cli = pkgs.callPackage ./cursor-cli {};
   };
   optional = pkgs.lib.optionalAttrs (camera-mock-src != null) {

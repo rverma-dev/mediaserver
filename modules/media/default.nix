@@ -6,4 +6,5 @@
   ./seerr
   ./qbittorrent
   ./immich
+./jellarr
 ]

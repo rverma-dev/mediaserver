@@ -28,6 +28,10 @@ init-warp: ## Register Cloudflare WARP (one-time)
 build: ## Build and activate home-manager config
 	nix run home-manager -- switch --flake '$(FLAKE)'
 
+.PHONY: build-system
+build-system: ## Apply system services config via home-manager
+	nix run home-manager -- switch --flake '$(FLAKE)'
+
 .PHONY: build-dry
 build-dry: ## Dry-run build (no activation)
 	nix run home-manager -- build --flake '$(FLAKE)'
