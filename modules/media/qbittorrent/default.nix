@@ -62,7 +62,7 @@ in {
       After = ["network-online.target"];
     };
     Service = {
-      ExecStart = "${pkgs.qbittorrent-nox}/bin/qbittorrent-nox --webui-port=8080 --profile=${vars.mediaRoot}/config/qbittorrent";
+      ExecStart = "${pkgs.qbittorrent-nox}/bin/qbittorrent-nox --webui-port=8081 --profile=${vars.mediaRoot}/config/qbittorrent";
       Restart = "always";
       RestartSec = "5s";
       Environment = ["TZ=${vars.tz}"];

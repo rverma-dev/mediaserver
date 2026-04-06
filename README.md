@@ -9,7 +9,7 @@ graph LR
   subgraph Media Acquisition
     Prowlarr[Prowlarr<br/>indexers :9696] --> Sonarr[Sonarr<br/>TV :8989]
     Prowlarr --> Radarr[Radarr<br/>movies :7878]
-    Sonarr --> qBit[qBittorrent<br/>downloads :8080]
+    Sonarr --> qBit[qBittorrent<br/>downloads :8081]
     Radarr --> qBit
     Bazarr[Bazarr<br/>subtitles :6767] --> Sonarr
     Bazarr --> Radarr
@@ -49,7 +49,7 @@ All served over HTTPS via Angie + Lego/DuckDNS DNS challenge.
 | Path                          | Service      | Port  |
 | ----------------------------- | ------------ | ----- |
 | `/jellyfin/`                  | Jellyfin     | 8096  |
-| `/qbit/`                      | qBittorrent  | 8080  |
+| `/qbit/`                      | qBittorrent  | 8081  |
 | `/sonarr/`                    | Sonarr       | 8989  |
 | `/radarr/`                    | Radarr       | 7878  |
 | `/prowlarr/`                  | Prowlarr     | 9696  |
