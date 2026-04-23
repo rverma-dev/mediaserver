@@ -46,7 +46,7 @@
     "${template}" \
     | sed "s|__MIME_TYPES_PATH__|${mimeTypes}|g" > "${configFile}"
 
-    exec nginx -c "${configFile}" -g 'daemon off;'
+    exec nginx -e "${configDir}/error.log" -c "${configFile}" -g 'daemon off;'
   '';
 
   renewScript = pkgs.writeShellScript "angie-cert-renew" ''
