@@ -1,14 +1,14 @@
 {pkgs}: let
-  version = "4.0.17.2952";
+  version = "4.0.19.2979";
 
   source_sets = {
     linux_arm64 = {
       url = "https://github.com/Sonarr/Sonarr/releases/download/v${version}/Sonarr.main.${version}.linux-arm64.tar.gz";
-      hash = "sha256-fIztusYxtSg2ZKdxBXTxJFoNOJaMX++UGNU10qQ33UM=";
+      hash = "sha256-jZe+SlVLEik8JtvCpGBvQk1yJrUiqXUEiCTs+UGiGqU=";
     };
     linux_amd64 = {
       url = "https://github.com/Sonarr/Sonarr/releases/download/v${version}/Sonarr.main.${version}.linux-x64.tar.gz";
-      hash = "sha256-1RQjcgZ9cnl5QhynsdYGAc7s2XWK86fa+sxuu6gxd3o=";
+      hash = "sha256-tpGzWEwxwLVRQFje6BBxySP2PVmjfRnjL5L6E+qhU9s=";
     };
   };
 in
