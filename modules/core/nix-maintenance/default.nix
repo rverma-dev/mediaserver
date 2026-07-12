@@ -27,6 +27,9 @@ in {
     Unit.Description = "Pull latest lock and activate home-manager config";
     Service = {
       Type = "oneshot";
+      TimeoutStartSec = "30min";
+      Nice = 19;
+      IOSchedulingClass = "best-effort";
       Environment = ["PATH=${nixPath}" "MEDIASERVER_ROOT=${root}"];
       ExecStart = "${activateScript}";
     };
@@ -36,7 +39,9 @@ in {
     Unit.Description = "Daily home-manager activation";
     Timer = {
       OnCalendar = "daily";
-      Persistent = true;
+      # Do not launch a potentially long rebuild immediately after a long
+      # outage; the previous generation already contains the media services.
+      Persistent = false;
       RandomizedDelaySec = "1h";
     };
     Install.WantedBy = ["timers.target"];

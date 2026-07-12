@@ -168,6 +168,12 @@
     };
 
     initContent = ''
+      export PATH="$HOME/.cargo/bin:$PATH"
+
+      if command -v zeroclaw >/dev/null 2>&1; then
+        source <(zeroclaw completions zsh)
+      fi
+
       # Better directory navigation
       setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_SILENT
 

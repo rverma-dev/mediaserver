@@ -21,6 +21,7 @@
       Requires = ["prowlarr.service"];
     };
     Service = {
+      ExecStartPre = "${pkgs.util-linux}/bin/mountpoint -q ${vars.hddMountPath}";
       ExecStart = "${vars.pkgs.sonarr}/bin/sonarr --nobrowser --data=${vars.mediaRoot}/config/sonarr";
       Restart = "always";
       RestartSec = "5s";

@@ -6,5 +6,6 @@
   ./seerr
   ./qbittorrent
   ./immich
-./jellarr
+  ./jellarr
+  ./telegram
 ]

@@ -40,6 +40,7 @@ in {
       Requires = ["immich-redis.service"];
     };
     Service = {
+      ExecStartPre = "${pkgs.util-linux}/bin/mountpoint -q ${vars.hddMountPath}";
       ExecStart = "${pkgs.immich}/bin/server";
       Restart = "always";
       RestartSec = "10s";

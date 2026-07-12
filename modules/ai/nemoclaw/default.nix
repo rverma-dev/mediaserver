@@ -5,6 +5,7 @@
     Unit = {
       Description = "NemoClaw Services";
       After = [ "network.target" ];
+      ConditionPathExists = "/home/pi/.local/bin/nemoclaw";
     };
 
     Service = {

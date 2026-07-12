@@ -87,6 +87,14 @@ Automated media acquisition pipeline. Prowlarr manages indexers; Sonarr/Radarr r
 | **qBittorrent** | Torrent client               | `config/qbittorrent/.../qBittorrent.conf` | LAN auth bypass: `192.168.68.0/22`            |
 | **Jellyfin**  | Media server + transcoding     | `services.jellyfin`               | Prefer H.264/HEVC; AV1/VP9 too slow on Pi               |
 | **Seerr**     | Request UI for movies/TV       | `config/seerr/settings.json`    | Runs through proxychains + WARP; HTTPS on `:9443`        |
+| **Telegram bot** | Movie requests via Telegram | `.env` + `modules/media/telegram` | Sends requests to Radarr and starts a search |
+
+### Telegram movie requests
+
+Create a bot with `@BotFather`, then set `TELEGRAM_BOT_TOKEN` and your private
+chat ID in `.env`. Restart `telegram-arr-bot.service` after changing `.env`.
+Use `/movie title` for an exact match, `/add TMDB_ID` for a listed result, and
+`/status` to see the Radarr queue. Requests are ignored from every other chat.
 
 ### Pi 5 HEVC Priority (The Golden Child)
 

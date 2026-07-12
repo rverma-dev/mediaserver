@@ -8,6 +8,23 @@ let
     base_url = baseUrl;
     system = {
       enableMetrics = true;
+      pluginRepositories = [
+        {
+          name = "Jellyfin Official";
+          url = "https://repo.jellyfin.org/releases/plugin/manifest.json";
+          enabled = true;
+        }
+        {
+          name = "Moonfin";
+          url = "https://raw.githubusercontent.com/Moonfin-Client/Plugin/refs/heads/master/manifest.json";
+          enabled = true;
+        }
+        {
+          name = "IAmParadox";
+          url = "https://www.iamparadox.dev/jellyfin/plugins/manifest.json";
+          enabled = true;
+        }
+      ];
     };
     library = {
       virtualFolders = [
@@ -58,6 +75,18 @@ let
         };
       }
     ];
+    plugins = [
+      { name = "File Transformation"; }
+      {
+        name = "Moonfin";
+        configuration = {
+          EnableSettingsSync = true;
+          JellyseerrEnabled = true;
+          JellyseerrUrl = "http://127.0.0.1:5055";
+          JellyseerrDisplayName = "Seerr";
+        };
+      }
+    ];
   };
 
   jellarrConfigFile = pkgs.writeText "jellarr-config.yml" jellarrConfig;
@@ -67,21 +96,25 @@ let
 
     for _ in $(seq 1 120); do
       # If Jellyfin is already at /jellyfin, we are good
-      if ${pkgs.curl}/bin/curl -sf http://127.0.0.1:8096/jellyfin/System/Info/Public >/dev/null; then
+      CODE=$(${pkgs.curl}/bin/curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8096/jellyfin/System/Info/Public || echo "000")
+      if [ "$CODE" = "200" ]; then
         exit 0
       fi
 
       # If Jellyfin is at / (fresh wipe), configure BaseUrl and restart
-      if ${pkgs.curl}/bin/curl -sf http://127.0.0.1:8096/System/Info/Public >/dev/null; then
+      CODE=$(${pkgs.curl}/bin/curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8096/System/Info/Public || echo "000")
+      if [ "$CODE" = "200" ]; then
         if [ -n "''${JELLARR_API_KEY:-}" ]; then
           CONFIG=$(${pkgs.curl}/bin/curl -s "http://127.0.0.1:8096/System/Configuration/network" -H "X-Emby-Token: ''${JELLARR_API_KEY}")
           if [ -n "$CONFIG" ]; then
-            NEW_CONFIG=$(echo "$CONFIG" | ${pkgs.jq}/bin/jq '.BaseUrl = "/jellyfin"')
-            ${pkgs.curl}/bin/curl -s -X POST "http://127.0.0.1:8096/System/Configuration/network" \
-              -H "X-Emby-Token: ''${JELLARR_API_KEY}" \
-              -H "Content-Type: application/json" \
-              -d "$NEW_CONFIG" >/dev/null || true
-            systemctl --user restart jellyfin || true
+            NEW_CONFIG=$(echo "$CONFIG" | ${pkgs.jq}/bin/jq '.BaseUrl = "/jellyfin"' || true)
+            if [ -n "$NEW_CONFIG" ]; then
+              ${pkgs.curl}/bin/curl -s -X POST "http://127.0.0.1:8096/System/Configuration/network" \
+                -H "X-Emby-Token: ''${JELLARR_API_KEY}" \
+                -H "Content-Type: application/json" \
+                -d "$NEW_CONFIG" >/dev/null || true
+              systemctl --user restart jellyfin || true
+            fi
           fi
         fi
       fi
@@ -119,6 +152,7 @@ in {
       Wants = [ "network-online.target" ];
     };
     Service = {
+      ExecStartPre = "${pkgs.util-linux}/bin/mountpoint -q ${vars.hddMountPath}";
       ExecStart = "${pkgs.jellyfin}/bin/jellyfin --datadir ${jellyfinDataDir} --cachedir ${jellyfinCacheDir}";
       Restart = "always";
       RestartSec = "5s";

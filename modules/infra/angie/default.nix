@@ -54,7 +54,13 @@
     [[ -f "${vars.mediaRoot}/.env" ]] && set -a && source "${vars.mediaRoot}/.env" && set +a
     DOMAIN="''${DUCKDNS_SUBDOMAIN:-}.duckdns.org"
     [[ -z "''${DUCKDNS_SUBDOMAIN:-}" ]] && exit 0
-    ${pkgs.lego}/bin/lego --path "${legoPath}" --dns duckdns -d "$DOMAIN" renew --reuse-key
+    shopt -s nullglob
+    accounts=( "${legoPath}/accounts/"*/registration.json )
+    if (( ''${#accounts[@]} == 0 )); then
+      echo "No Lego account exists yet; Angie will obtain the first certificate."
+      exit 0
+    fi
+    ${pkgs.lego}/bin/lego --path "${legoPath}" --dns duckdns -d "$DOMAIN" --email "''${ACME_EMAIL:-admin@$DOMAIN}" renew --reuse-key
     systemctl --user reload angie
   '';
 in {

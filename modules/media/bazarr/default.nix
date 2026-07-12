@@ -21,6 +21,7 @@
       Requires = ["sonarr.service" "radarr.service"];
     };
     Service = {
+      ExecStartPre = "${pkgs.util-linux}/bin/mountpoint -q ${vars.hddMountPath}";
       ExecStart = "${vars.pkgs.bazarr}/bin/bazarr --config ${vars.mediaRoot}/config/bazarr";
       Restart = "always";
       RestartSec = "5s";

@@ -21,6 +21,7 @@
       Requires = ["prowlarr.service"];
     };
     Service = {
+      ExecStartPre = "${pkgs.util-linux}/bin/mountpoint -q ${vars.hddMountPath}";
       ExecStart = "${vars.pkgs.radarr}/bin/radarr --nobrowser --data=${vars.mediaRoot}/config/radarr";
       Restart = "always";
       RestartSec = "5s";
