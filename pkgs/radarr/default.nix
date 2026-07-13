@@ -1,14 +1,14 @@
 {pkgs}: let
-  version = "6.2.1.10461";
+  version = "6.3.0.10514";
 
   source_sets = {
     linux_arm64 = {
       url = "https://github.com/Radarr/Radarr/releases/download/v${version}/Radarr.master.${version}.linux-core-arm64.tar.gz";
-      hash = "sha256-zRKpzgDTX8JyE6dR9NGKSU7TA4wckO1zMzDkZxP5N4g=";
+      hash = "sha256-OS7pmjWMDK2Y2x2kzTlGgKm72e/50pPuXZz4zpOmukM=";
     };
     linux_amd64 = {
       url = "https://github.com/Radarr/Radarr/releases/download/v${version}/Radarr.master.${version}.linux-core-x64.tar.gz";
-      hash = "sha256-TK4FwotBjRfT9Mubyd3J0/U2EiqSN9Z67Nevt1HlL34=";
+      hash = "sha256-QdZFXAN/8mfFrVoPDeRQLOvo+J7D0FHal4UZM9SKQEc=";
     };
   };
 in
