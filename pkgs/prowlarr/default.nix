@@ -1,14 +1,14 @@
 {pkgs}: let
-  version = "2.4.0.5397";
+  version = "2.5.2.5491";
 
   source_sets = {
     linux_arm64 = {
       url = "https://github.com/Prowlarr/Prowlarr/releases/download/v${version}/Prowlarr.master.${version}.linux-core-arm64.tar.gz";
-      hash = "sha256-PlS+xgvvcppQqS1dvuPH36CwZwdN5PFF0lz9xqECMU8=";
+      hash = "sha256-sB/Cmr4Gf9T8A/8HHpg098kH0aWcAhdoIotOgCIdRdY=";
     };
     linux_amd64 = {
       url = "https://github.com/Prowlarr/Prowlarr/releases/download/v${version}/Prowlarr.master.${version}.linux-core-x64.tar.gz";
-      hash = "sha256-lcEoXShlE/6VZXZykb3pOUD9tDLbrT/dQfqmD3PqvMo=";
+      hash = "sha256-Iv6VdChp169eFtQgx4iRhVeRUuqDJL5sbk480BH0w3s=";
     };
   };
 in
