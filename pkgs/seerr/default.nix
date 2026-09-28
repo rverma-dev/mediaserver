@@ -3,14 +3,14 @@
 # After build: ./scripts/update-seerr-hashes.sh 3.0.1-N to update version and hash.
 {pkgs, lib}:
 let
-  version = "3.4.1-31";  # use 3.0.1-N after build (e.g. 3.0.1-11)
+  version = "3.5.0-39";  # use 3.0.1-N after build (e.g. 3.0.1-11)
   repo = "rverma-dev/mediaserver";
   tag = "seerr-v${version}";
   baseUrl = "https://github.com/${repo}/releases/download/${tag}";
 
   arm64 = {
     url = "${baseUrl}/seerr-linux-arm64.tar.gz";
-    hash = "sha256-dsPqdxDai55/hKsNQ+tyEfmnZGuCLUXbGF67au3zBLg=";  # arm64
+    hash = "sha256-rH+zHAYHBJyWkOKko9UTnM0glbjBvIUmLS2ksqakz+U=";  # arm64
   };
 in
   pkgs.stdenv.mkDerivation {
